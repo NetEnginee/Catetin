@@ -1,0 +1,30 @@
+# Version control
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Documentation & AI Context
+.context
+.ai
+*.md
+
+# Docker configuration files (not needed inside application container)
+docker
+compose*.yaml
+compose*.yml
+Dockerfile*
+
+# Editor and OS files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs and runtime caches
+*.log
