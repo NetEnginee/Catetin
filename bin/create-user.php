@@ -6,8 +6,8 @@ declare(strict_types=1);
 /**
  * Catetin CLI - Secure User Provisioning Script
  * Usage:
- *   php bin/create-user.php
- *   php bin/create-user.php --username=admin --name="Administrator" --role=admin --password=secret
+ *   sudo docker compose exec app php bin/create-user.php
+ *   sudo docker compose exec app php bin/create-user.php --username=admin --name="Administrator" --role=admin --password=secret
  */
 
 // Register manual autoloader
@@ -33,6 +33,7 @@ require_once __DIR__ . '/../src/app/Core/Helpers.php';
 use App\Core\App;
 use App\Core\Database;
 use App\Models\User;
+use function App\Core\env;
 
 // Bootstrap environment
 App::loadEnv(dirname(__DIR__) . '/.env');
@@ -137,8 +138,17 @@ try {
     echo "  - Nama     : {$name}\n";
     echo "  - Role     : {$role}\n";
     echo "  - Status   : Aktif\n\n";
-
 } catch (Throwable $e) {
     fwrite(STDERR, "\nError saat membuat akun: " . $e->getMessage() . "\n");
+    $isDnsResolutionError = str_contains($e->getMessage(), 'php_network_getaddresses')
+        || str_contains($e->getMessage(), 'getaddrinfo');
+    if ($isDnsResolutionError && env('DB_HOST', 'db') === 'db') {
+        fwrite(
+            STDERR,
+            "Host database 'db' hanya tersedia di jaringan Docker Compose. "
+                . "Jalankan skrip ini melalui service app, misalnya: "
+                . "docker compose exec app php bin/create-user.php\n"
+        );
+    }
     exit(1);
 }
