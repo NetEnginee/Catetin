@@ -23,7 +23,7 @@ class AuthController extends Controller
         }
 
         $this->view('auth/login', [
-            'title' => 'Masuk - Catetin',
+            'title' => 'Masuk — Catetin',
             'error' => Session::getFlash('error'),
         ], 'auth');
     }
@@ -45,19 +45,26 @@ class AuthController extends Controller
         // 2. Input validation
         if ($username === '' || $password === '') {
             Session::flashOldInput(['username' => $username]);
-            Session::setFlash('error', 'Nama pengguna dan kata sandi wajib diisi.');
+            Session::setFlash('error', 'Username dan password wajib diisi.');
             $this->redirect('/login');
         }
 
         // 3. Attempt authentication
-        if (Auth::attempt($username, $password)) {
-            // Authentication successful -> redirect to internal dashboard
-            $this->redirect('/dashboard');
+        try {
+            if (Auth::attempt($username, $password)) {
+                // Authentication successful -> redirect to internal dashboard
+                $this->redirect('/dashboard');
+            }
+        } catch (\Throwable $e) {
+            error_log("Authentication exception: " . $e->getMessage());
+            Session::flashOldInput(['username' => $username]);
+            Session::setFlash('error', 'Terjadi kesalahan sistem atau database. Silakan coba beberapa saat lagi.');
+            $this->redirect('/login');
         }
 
         // 4. Authentication failed: Generic error message to prevent account enumeration
         Session::flashOldInput(['username' => $username]);
-        Session::setFlash('error', 'Nama pengguna atau kata sandi salah.');
+        Session::setFlash('error', 'Username atau password salah. Silakan coba lagi.');
         $this->redirect('/login');
     }
 

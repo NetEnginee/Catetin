@@ -246,19 +246,28 @@ $router->dispatch('GET', '/dashboard');
 assertTest("Router dispatches GET /dashboard", $routeLog === ['GET /dashboard']);
 
 // --- 6. TEST VIEW RENDERING & OUTPUT ESCAPING ---
-echo "\n6. Testing View & Layout Rendering (Clean Structures):\n";
+echo "\n6. Testing View & Layout Rendering (Catetin Login UI):\n";
 
 ob_start();
 View::render('auth/login', [
-    'title' => 'Test Login Title',
+    'title' => 'Masuk — Catetin',
     'error' => 'Test Error Message <unsafe>',
 ], 'auth');
 $output = ob_get_clean();
 
-assertTest("View renders with auth layout", str_contains($output, '<!DOCTYPE html>') && str_contains($output, 'id="auth-main"'));
-assertTest("View renders page title", str_contains($output, '<title>Test Login Title</title>'));
+assertTest("View renders with auth layout and fonts", str_contains($output, '<!DOCTYPE html>') && str_contains($output, 'Space+Grotesk'));
+assertTest("View renders page title", str_contains($output, '<title>Masuk — Catetin</title>'));
+assertTest("View renders SVG logo", str_contains($output, 'aria-label="Catetin"') && str_contains($output, '<svg viewBox="0 0 32 32"'));
+assertTest("View renders headline text", str_contains($output, 'Kelola tanpa Drama, tanpa Masalah.'));
+assertTest("View renders desktop and mobile paragraphs", str_contains($output, 'desktop-tablet-copy') && str_contains($output, 'mobile-copy'));
+assertTest("View renders brand footer", str_contains($output, '© 2026 CATETIN'));
 assertTest("View escapes error message against XSS", str_contains($output, 'Test Error Message &lt;unsafe&gt;'));
 assertTest("View renders CSRF field", str_contains($output, 'name="_csrf_token"'));
+assertTest("View renders username and password fields with autocomplete", str_contains($output, 'autocomplete="username"') && str_contains($output, 'autocomplete="current-password"'));
+assertTest("View renders password toggle button with ARIA", str_contains($output, 'id="passwordToggle"') && str_contains($output, 'aria-label="Tampilkan password"'));
+assertTest("View renders remember checkbox and forgot link", str_contains($output, 'id="remember"') && str_contains($output, 'Lupa password?'));
+assertTest("View renders submit button", str_contains($output, 'type="submit">Masuk</button>'));
+assertTest("View includes login.js script", str_contains($output, 'src="/assets/js/login.js"'));
 
 ob_start();
 View::render('home/dashboard', [
