@@ -245,8 +245,8 @@ $routeLog = [];
 $router->dispatch('GET', '/dashboard');
 assertTest("Router dispatches GET /dashboard", $routeLog === ['GET /dashboard']);
 
-// --- 5. TEST VIEW RENDERING & OUTPUT ESCAPING ---
-echo "\n5. Testing View & Layout Rendering:\n";
+// --- 6. TEST VIEW RENDERING & OUTPUT ESCAPING ---
+echo "\n6. Testing View & Layout Rendering (Clean Structures):\n";
 
 ob_start();
 View::render('auth/login', [
@@ -255,7 +255,7 @@ View::render('auth/login', [
 ], 'auth');
 $output = ob_get_clean();
 
-assertTest("View renders with auth layout", str_contains($output, '<!DOCTYPE html>') && str_contains($output, 'class="auth-body"'));
+assertTest("View renders with auth layout", str_contains($output, '<!DOCTYPE html>') && str_contains($output, 'id="auth-main"'));
 assertTest("View renders page title", str_contains($output, '<title>Test Login Title</title>'));
 assertTest("View escapes error message against XSS", str_contains($output, 'Test Error Message &lt;unsafe&gt;'));
 assertTest("View renders CSRF field", str_contains($output, 'name="_csrf_token"'));
@@ -267,12 +267,12 @@ View::render('home/dashboard', [
 ], 'app');
 $appOutput = ob_get_clean();
 
-assertTest("View renders with app layout", str_contains($appOutput, 'class="app-body"'));
-assertTest("View renders user name and role badge", str_contains($appOutput, 'Dil Tester') && str_contains($appOutput, 'ADMIN'));
+assertTest("View renders with app layout", str_contains($appOutput, 'id="app"') && str_contains($appOutput, 'id="app-main"'));
+assertTest("View renders clean dashboard content", str_contains($appOutput, 'id="dashboard-content"'));
 assertTest("View renders POST logout form with CSRF", str_contains($appOutput, 'action="/logout"') && str_contains($appOutput, 'name="_csrf_token"'));
 
-// --- 6. TEST ERROR VIEWS ---
-echo "\n6. Testing Error Views:\n";
+// --- 7. TEST ERROR VIEWS ---
+echo "\n7. Testing Error Views:\n";
 
 ob_start();
 View::render('errors/403', ['title' => '403 Akses Ditolak', 'message' => 'Dilarang masuk'], 'auth');

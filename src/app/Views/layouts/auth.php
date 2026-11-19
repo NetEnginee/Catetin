@@ -1,6 +1,9 @@
 <?php
-/** @var string $title */
-/** @var string $content */
+/**
+ * Auth Layout - Clean structure ready for final UI/UX design
+ * @var string $title
+ * @var string $content
+ */
 use function App\Core\e;
 ?>
 <!DOCTYPE html>
@@ -11,8 +14,8 @@ use function App\Core\e;
     <title><?= e($title ?? 'Catetin') ?></title>
     <link rel="stylesheet" href="/assets/css/auth.css">
 </head>
-<body class="auth-body">
-    <main class="auth-container">
+<body>
+    <main id="auth-main">
         <?= $content ?>
     </main>
 </body>

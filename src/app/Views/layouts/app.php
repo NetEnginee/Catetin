@@ -1,6 +1,9 @@
 <?php
-/** @var string $title */
-/** @var string $content */
+/**
+ * Application Layout - Clean structure ready for final UI/UX design
+ * @var string $title
+ * @var string $content
+ */
 use App\Core\Auth;
 use function App\Core\e;
 use function App\Core\csrf_field;
@@ -15,29 +18,19 @@ $currentUser = Auth::user();
     <title><?= e($title ?? 'Catetin') ?></title>
     <link rel="stylesheet" href="/assets/css/app.css">
 </head>
-<body class="app-body">
-    <header class="app-header">
-        <div class="header-container">
-            <div class="brand">
-                <span class="brand-title">Catetin</span>
-            </div>
-            <div class="user-menu">
-                <span class="user-info">
-                    <?= e($currentUser['name'] ?? 'Pengguna') ?>
-                    <span class="role-badge"><?= e(strtoupper($currentUser['role'] ?? 'OPERATOR')) ?></span>
-                </span>
-                <form action="/logout" method="POST" class="logout-form">
-                    <?= csrf_field() ?>
-                    <button type="submit" class="btn-logout">Keluar</button>
-                </form>
-            </div>
-        </div>
-    </header>
+<body>
+    <div id="app">
+        <!-- Structural navigation/logout action placeholder -->
+        <nav id="app-nav">
+            <form action="/logout" method="POST">
+                <?= csrf_field() ?>
+                <button type="submit">Keluar</button>
+            </form>
+        </nav>
 
-    <main class="app-main">
-        <div class="main-container">
+        <main id="app-main">
             <?= $content ?>
-        </div>
-    </main>
+        </main>
+    </div>
 </body>
 </html>
