@@ -167,19 +167,8 @@ input {
   line-height: 1.5;
 }
 
-.error-message {
-  display: none;
-  padding: 12px 14px;
-  border: 1px solid var(--error-border);
-  border-radius: 10px;
-  background: var(--error-bg);
-  color: var(--error-text);
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.error-message.is-visible {
-  display: block;
+.field-input.is-invalid {
+  border-color: var(--error-text);
 }
 
 .field {

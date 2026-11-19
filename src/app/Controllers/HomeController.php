@@ -8,7 +8,7 @@ use App\Core\Auth;
 use App\Core\Controller;
 
 /**
- * Controller handling root landing redirects and internal dashboard placeholder.
+ * Controller handling root redirects and the authenticated dashboard.
  */
 class HomeController extends Controller
 {
@@ -26,7 +26,7 @@ class HomeController extends Controller
     }
 
     /**
-     * Internal dashboard verification placeholder.
+     * Display the authenticated financial dashboard.
      * Protected by 'auth' middleware.
      */
     public function dashboard(): void
@@ -34,7 +34,7 @@ class HomeController extends Controller
         $user = Auth::user();
 
         $this->view('home/dashboard', [
-            'title' => 'Dashboard - Catetin',
+            'title' => 'Dashboard — Catetin',
             'user'  => $user,
         ], 'app');
     }

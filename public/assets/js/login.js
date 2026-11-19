@@ -1,13 +1,11 @@
 /**
  * Catetin - Login UI JavaScript
- * Handles password visibility toggle, client-side empty field validation,
- * and dynamic error message clearance.
+ * Handles password visibility toggle and client-side empty field validation.
  */
 (() => {
   const form = document.getElementById("loginForm");
   const username = document.getElementById("username");
   const password = document.getElementById("password");
-  const error = document.getElementById("formError");
   const toggle = document.getElementById("passwordToggle");
   const eyeIcon = document.getElementById("eyeIcon");
 
@@ -17,24 +15,20 @@
   const ICON_EYE_ON =
     '<path d="M2.3 12s3.5-7 9.7-7 9.7 7 9.7 7-3.5 7-9.7 7-9.7-7Z"></path><circle cx="12" cy="12" r="3"></circle>';
 
-  const showError = (message) => {
-    if (!error) return;
-    error.textContent = message;
-    error.classList.add("is-visible");
-  };
-
-  const clearError = () => {
-    if (!error) return;
-    error.textContent = "";
-    error.classList.remove("is-visible");
-  };
-
-  // Clear error message when user starts typing in username or password
-  if (username && password) {
-    [username, password].forEach((field) => {
-      field.addEventListener("input", clearError);
+  [username, password].forEach((field) => {
+    if (!field) return;
+    field.addEventListener("input", () => {
+      if (field.value.trim()) {
+        field.classList.remove("is-invalid");
+        field.setAttribute("aria-invalid", "false");
+      }
     });
-  }
+  });
+
+  const markInvalid = (field, invalid) => {
+    field.classList.toggle("is-invalid", invalid);
+    field.setAttribute("aria-invalid", String(invalid));
+  };
 
   // Toggle Password Visibility
   if (toggle && password && eyeIcon) {
@@ -58,7 +52,8 @@
 
       if (!trimmedUser || !pass) {
         event.preventDefault();
-        showError("Username dan password wajib diisi.");
+        markInvalid(username, !trimmedUser);
+        markInvalid(password, !pass);
         if (!trimmedUser) {
           username.focus();
         } else {

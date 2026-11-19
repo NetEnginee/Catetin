@@ -8,6 +8,7 @@
 use function App\Core\e;
 use function App\Core\csrf_field;
 use function App\Core\old;
+$hasError = !empty($error);
 ?>
 <main class="login-page">
   <section class="brand-panel" aria-label="Tentang Catetin">
@@ -36,14 +37,14 @@ use function App\Core\old;
         <p>Masukkan username dan password Anda.</p>
       </header>
 
-      <div class="error-message<?= !empty($error) ? ' is-visible' : '' ?>" id="formError" role="alert" aria-live="polite"><?= !empty($error) ? e($error) : '' ?></div>
-
       <div class="field">
         <label for="username">Username</label>
         <input
           id="username"
           name="username"
           type="text"
+          class="field-input<?= $hasError ? ' is-invalid' : '' ?>"
+          aria-invalid="<?= $hasError ? 'true' : 'false' ?>"
           placeholder="contoh: budi.santoso"
           autocomplete="username"
           value="<?= e(old('username')) ?>"
@@ -58,6 +59,8 @@ use function App\Core\old;
             id="password"
             name="password"
             type="password"
+            class="field-input<?= $hasError ? ' is-invalid' : '' ?>"
+            aria-invalid="<?= $hasError ? 'true' : 'false' ?>"
             placeholder="Masukkan password"
             autocomplete="current-password"
             required>
