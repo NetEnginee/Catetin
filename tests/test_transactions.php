@@ -299,6 +299,19 @@ assertTest("removeCategoryResult returns 404 for another user's category", resul
 $removalApiResult = $controller->removeCategoryResult(1, ['id' => $removableCategoryId], true);
 assertTest("removeCategoryResult returns 200 with moved count and fallback", resultStatus($removalApiResult) === 200 && resultBody($removalApiResult)['data']['moved'] === 0 && resultBody($removalApiResult)['data']['fallback']['name'] === 'Lain-lain');
 
+$multiDeleteCategory = $categoryModel->create(1, 'expense', 'Kategori Multi Hapus');
+$multiDeleteRowOne = $transactionModel->create(1, 'expense', $multiDeleteCategory['id'], 10000, 'Multi hapus 1', '2026-11-20');
+$multiDeleteRowTwo = $transactionModel->create(1, 'expense', $multiDeleteCategory['id'], 20000, 'Multi hapus 2', '2026-11-20');
+$multiDeleteForeignRow = $transactionModel->create(2, 'expense', $categoryModel->listForUser(2)['expense'][0]['id'], 30000, 'Baris asing', '2026-11-20');
+
+assertTest("deleteManyTransactionsResult returns 403 without CSRF and deletes nothing", resultStatus($controller->deleteManyTransactionsResult(1, ['ids' => [$multiDeleteRowOne['id'], $multiDeleteRowTwo['id']]], false)) === 403 && count($transactionModel->allForUser(1)) >= 2);
+assertTest("deleteManyTransactionsResult returns 422 without ids", resultStatus($controller->deleteManyTransactionsResult(1, [], true)) === 422);
+assertTest("deleteManyTransactionsResult returns 422 for non-array ids", resultStatus($controller->deleteManyTransactionsResult(1, ['ids' => 5], true)) === 422);
+$beforeForeignCheck = count($transactionModel->allForUser(2));
+$multiDeleteApiResult = $controller->deleteManyTransactionsResult(1, ['ids' => [$multiDeleteRowOne['id'], $multiDeleteRowTwo['id'], $multiDeleteForeignRow['id']]], true);
+assertTest("deleteManyTransactionsResult returns 200 with the deleted count", resultStatus($multiDeleteApiResult) === 200 && resultBody($multiDeleteApiResult)['data']['deleted'] === 2);
+assertTest("deleteManyTransactionsResult silently ignores foreign ids", count($transactionModel->allForUser(2)) === $beforeForeignCheck);
+
 echo "\n5. Testing category removal:\n";
 
 $removalCategory = $categoryModel->create(1, 'income', 'Kategori Uji Hapus');
@@ -379,6 +392,34 @@ assertTest("deleteWithFallback cannot remove another user's category", $category
 $unusedCategory = $categoryModel->create(1, 'expense', 'Kategori Kosong');
 $unusedRemoval = $categoryModel->deleteWithFallback(1, $unusedCategory['id']);
 assertTest("deleteWithFallback deletes an unused category with moved = 0", $unusedRemoval['moved'] === 0 && !in_array('Kategori Kosong', array_column($categoryModel->listForUser(1)['expense'], 'name'), true));
+
+echo "\n6. Testing multi-delete:\n";
+
+$multiModelCategory = $categoryModel->create(1, 'income', 'Kategori Multi Model');
+$multiModelRows = [
+    $transactionModel->create(1, 'income', $multiModelCategory['id'], 1000, 'Multi model 1', '2026-11-20'),
+    $transactionModel->create(1, 'income', $multiModelCategory['id'], 2000, 'Multi model 2', '2026-11-20'),
+    $transactionModel->create(1, 'income', $multiModelCategory['id'], 3000, 'Multi model 3', '2026-11-20'),
+];
+$multiModelIds = array_column($multiModelRows, 'id');
+
+$beforeMultiModel = count($transactionModel->allForUser(1));
+assertTest("deleteMany deletes owned rows and returns the count", $transactionModel->deleteMany(1, $multiModelIds) === 3 && count($transactionModel->allForUser(1)) === $beforeMultiModel - 3);
+
+$multiIsolationRows = [
+    $transactionModel->create(1, 'income', $userOneIncomeCategory['id'], 4000, 'Isolasi user 1 a', '2026-11-20'),
+    $transactionModel->create(1, 'income', $userOneIncomeCategory['id'], 5000, 'Isolasi user 1 b', '2026-11-20'),
+    $transactionModel->create(2, 'income', $categoryModel->listForUser(2)['income'][0]['id'], 6000, 'Isolasi user 2', '2026-11-20'),
+];
+$beforeIsolationUserOne = count($transactionModel->allForUser(1));
+$beforeIsolationUserTwo = count($transactionModel->allForUser(2));
+assertTest("deleteMany counts only owned rows", $transactionModel->deleteMany(1, [$multiIsolationRows[0]['id'], $multiIsolationRows[1]['id'], $multiIsolationRows[2]['id']]) === 2 && count($transactionModel->allForUser(1)) === $beforeIsolationUserOne - 2 && count($transactionModel->allForUser(2)) === $beforeIsolationUserTwo);
+
+assertTest("deleteMany empty input returns 0", $transactionModel->deleteMany(1, []) === 0);
+assertTest("deleteMany invalid ids are ignored", $transactionModel->deleteMany(1, ['abc', 0, -3]) === 0);
+
+$singleRow = $transactionModel->create(1, 'income', $userOneIncomeCategory['id'], 7000, 'Duplikat hapus', '2026-11-20');
+assertTest("deleteMany duplicates are collapsed", $transactionModel->deleteMany(1, [$singleRow['id'], $singleRow['id']]) === 1);
 
 Database::disconnect();
 

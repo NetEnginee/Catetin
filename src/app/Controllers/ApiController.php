@@ -120,6 +120,22 @@ class ApiController extends Controller
     }
 
     /**
+     * POST /api/transactions/delete-batch
+     */
+    public function deleteManyTransactions(): void
+    {
+        $userId = Auth::id();
+        if ($userId === null) {
+            $this->json($this->failure('Autentikasi diperlukan.', 401)['body'], 401);
+            return;
+        }
+
+        $body = $this->requestBody();
+        $result = $this->deleteManyTransactionsResult($userId, $body, $this->csrfIsValid($body));
+        $this->json($result['body'], $result['status']);
+    }
+
+    /**
      * POST /api/categories
      */
     public function createCategory(): void
@@ -279,6 +295,40 @@ class ApiController extends Controller
     /**
      * Testable category creation logic.
      */
+    /**
+     * Testable batch delete logic.
+     */
+    public function deleteManyTransactionsResult(int $userId, array $body, bool $csrfValid): array
+    {
+        if (!$csrfValid) {
+            return $this->failure('Token CSRF tidak valid.', 403);
+        }
+
+        $ids = $body['ids'] ?? null;
+        if (!is_array($ids) || $ids === []) {
+            return $this->failure('Pilih minimal satu transaksi.', 422);
+        }
+
+        $validIds = [];
+        foreach ($ids as $id) {
+            $parsed = $this->positiveInt($id);
+            if ($parsed !== null) {
+                $validIds[] = $parsed;
+            }
+        }
+        if ($validIds === []) {
+            return $this->failure('Data transaksi tidak valid.', 422);
+        }
+
+        try {
+            $deleted = $this->transactionModel->deleteMany($userId, $validIds);
+            return $this->success(['deleted' => $deleted]);
+        } catch (Throwable $exception) {
+            error_log('Delete many transactions API error: ' . $exception->getMessage());
+            return $this->failure('Transaksi gagal dihapus.', 500);
+        }
+    }
+
     public function createCategoryResult(int $userId, array $body, bool $csrfValid): array
     {
         if (!$csrfValid) {

@@ -126,6 +126,18 @@
                     <option value="all">Semua kategori</option>
                 </select>
             </div>
+            <div class="bulk-action-bar" id="bulkActionBar" hidden>
+                <input type="checkbox" id="selectAllHistory" aria-label="Pilih semua transaksi di halaman ini">
+                <span id="bulkDeleteCount" role="status" aria-live="polite"></span>
+                <button type="button" id="bulkDeleteButton">Hapus terpilih</button>
+            </div>
+            <div class="bulk-delete-confirmation" id="bulkDeleteConfirmation" role="alert" hidden>
+                <p id="bulkDeleteMessage"></p>
+                <div>
+                    <button type="button" id="cancelBulkDelete">Batal</button>
+                    <button type="button" id="confirmBulkDelete">Ya, hapus</button>
+                </div>
+            </div>
             <div class="transaction-history-list" id="transactionHistory"></div>
             <div class="transaction-pagination" id="transactionPagination" hidden>
                 <p class="transaction-pagination-summary" id="historyPaginationSummary" role="status"></p>

@@ -33,6 +33,8 @@
         selectedTransactionId: null,
         detailTransactionId: null,
         deleteConfirmation: false,
+        selectedTransactionIds: new Set(),
+        bulkDeleteConfirmation: false,
         manageCategories: false,
         removeCategoryId: null,
         calendarTarget: null,
@@ -162,6 +164,8 @@
             id: transaction.display_id,
         }));
         state.usedTransactionIds = new Set(state.transactions.map((transaction) => transaction.display_id));
+        state.selectedTransactionIds.clear();
+        state.bulkDeleteConfirmation = false;
 
         if (state.formDate === null || state.formDate < earliestDate || state.formDate > today) {
             state.formDate = today;
@@ -240,9 +244,28 @@
         select.value = state.historyCategory;
     }
 
+    function renderBulkActionBar() {
+        const bar = byId("bulkActionBar");
+        const countNode = byId("bulkDeleteCount");
+        const selectAll = byId("selectAllHistory");
+        const selectedCount = state.selectedTransactionIds.size;
+        bar.hidden = selectedCount === 0;
+        countNode.textContent = selectedCount > 0 ? `${selectedCount} dipilih` : "";
+        if (selectedCount === 0) {
+            state.bulkDeleteConfirmation = false;
+            byId("bulkDeleteConfirmation").hidden = true;
+        }
+
+        const pageRows = [...document.querySelectorAll("[data-select-transaction]")].map((input) => Number(input.dataset.selectTransaction));
+        const allSelected = pageRows.length > 0 && pageRows.every((id) => state.selectedTransactionIds.has(id));
+        selectAll.checked = allSelected;
+        selectAll.indeterminate = pageRows.some((id) => state.selectedTransactionIds.has(id)) && !allSelected;
+    }
+
     function renderHistory() {
         setHistoryTypeButtons();
         renderHistoryCategoryOptions();
+        renderBulkActionBar();
 
         const periodTransactions = getTransactionsForDate();
         const filtered = periodTransactions
@@ -289,11 +312,9 @@
             const rows = transactions.map((transaction) => {
                 const income = transaction.type === "income";
                 const sign = income ? "+" : "−";
-                const icon = income
-                    ? '<path d="M12 19V5M6 11l6-6 6 6"></path>'
-                    : '<path d="M12 5v14m6-6-6 6-6-6"></path>';
                 const selected = transaction.id === state.selectedTransactionId;
-                return `<button class="transaction-row${selected ? " is-selected" : ""}" type="button" data-transaction-id="${escapeHtml(transaction.display_id)}" aria-pressed="${selected}"><span class="transaction-type-icon is-${transaction.type}" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="transaction-row-main"><span class="transaction-row-description">${escapeHtml(transaction.description)}</span><span class="transaction-row-meta">${escapeHtml(transaction.category)} · ${escapeHtml(transaction.time)} WIB</span></span><span class="transaction-row-amount${income ? " is-income" : ""}">${sign}${formatRupiah(transaction.amount)}</span></button>`;
+                const checked = state.selectedTransactionIds.has(transaction.apiId);
+                return `<button class="transaction-row${selected ? " is-selected" : ""}" type="button" data-transaction-id="${escapeHtml(transaction.display_id)}" aria-pressed="${selected}"><input type="checkbox" class="history-select-checkbox" data-select-transaction="${transaction.apiId}" aria-label="Pilih transaksi ${escapeHtml(transaction.description)}"${checked ? " checked" : ""} onclick="event.stopPropagation()"><span class="transaction-row-main"><span class="transaction-row-description">${escapeHtml(transaction.description)}</span><span class="transaction-row-meta">${escapeHtml(transaction.category)} · ${escapeHtml(transaction.time)} WIB</span></span><span class="transaction-row-amount${income ? " is-income" : ""}">${sign}${formatRupiah(transaction.amount)}</span></button>`;
             }).join("");
             return `<div class="transaction-date-group"><div class="transaction-date-group-heading"><span>${heading}</span><span>${groupCounts.get(date)} transaksi</span></div>${rows}</div>`;
         }).join("");
@@ -504,6 +525,8 @@
         if (target === "filter") {
             state.pageDate = date;
             state.historyPage = 1;
+            state.selectedTransactionIds.clear();
+            state.bulkDeleteConfirmation = false;
             renderPage();
             closeCalendar(true);
         } else if (target === "form") {
@@ -685,6 +708,8 @@
         state.historyType = "all";
         state.historyCategory = "all";
         state.historyPage = 1;
+        state.selectedTransactionIds.clear();
+        state.bulkDeleteConfirmation = false;
         renderHistory();
     }
 
@@ -711,6 +736,42 @@
             byId("transactionHistoryTitle").focus();
         } catch (error) {
             showDetailError(error.message);
+        } finally {
+            confirmButton.disabled = false;
+            cancelButton.disabled = false;
+        }
+    }
+
+    async function deleteSelectedTransactions() {
+        if (state.selectedTransactionIds.size === 0) return;
+        const confirmButton = byId("confirmBulkDelete");
+        const cancelButton = byId("cancelBulkDelete");
+        if (confirmButton.disabled || cancelButton.disabled) return;
+        confirmButton.disabled = true;
+        cancelButton.disabled = true;
+        const ids = [...state.selectedTransactionIds];
+        try {
+            await api("/api/transactions/delete-batch", {
+                method: "POST",
+                body: { ids },
+            });
+            const deletedDetail = state.detailTransactionId && state.selectedTransactionIds.has(findTransaction(state.detailTransactionId)?.apiId);
+            state.selectedTransactionIds.clear();
+            state.bulkDeleteConfirmation = false;
+            closeCalendar();
+            if (deletedDetail) closeTransactionDetail(false);
+            await loadTransactions();
+            state.selectedTransactionId = null;
+            renderPage();
+            byId("transactionHistoryTitle").setAttribute("tabindex", "-1");
+            byId("transactionHistoryTitle").focus();
+            byId("categoryFeedback").hidden = true;
+            byId("transactionFormSuccess").textContent = `${ids.length} transaksi berhasil dihapus.`;
+            byId("transactionFormSuccess").hidden = false;
+            byId("transactionFormError").hidden = true;
+        } catch (error) {
+            showDetailError(error.message);
+            byId("bulkDeleteConfirmation").hidden = false;
         } finally {
             confirmButton.disabled = false;
             cancelButton.disabled = false;
@@ -824,6 +885,8 @@
         if (state.calendarTarget?.kind !== "filter") return;
         state.pageDate = "all";
         state.historyPage = 1;
+        state.selectedTransactionIds.clear();
+        state.bulkDeleteConfirmation = false;
         renderPage();
         closeCalendar(true);
     });
@@ -834,6 +897,8 @@
     byId("historyCategoryFilter").addEventListener("change", (event) => {
         state.historyCategory = event.target.value;
         state.historyPage = 1;
+        state.selectedTransactionIds.clear();
+        state.bulkDeleteConfirmation = false;
         renderHistory();
     });
     document.querySelectorAll("[data-history-type]").forEach((button) => {
@@ -841,6 +906,8 @@
             state.historyType = button.dataset.historyType;
             state.historyCategory = "all";
             state.historyPage = 1;
+            state.selectedTransactionIds.clear();
+            state.bulkDeleteConfirmation = false;
             renderHistory();
         });
     });
@@ -855,6 +922,44 @@
         renderHistory();
     });
     byId("resetHistoryFilter").addEventListener("click", resetHistoryFilters);
+    byId("transactionHistory").addEventListener("change", (event) => {
+        const checkbox = event.target.closest("[data-select-transaction]");
+        if (!checkbox) return;
+        const id = Number(checkbox.dataset.selectTransaction);
+        if (checkbox.checked) state.selectedTransactionIds.add(id);
+        else state.selectedTransactionIds.delete(id);
+        renderBulkActionBar();
+    });
+
+    byId("selectAllHistory").addEventListener("change", (event) => {
+        const pageIds = [...document.querySelectorAll("[data-select-transaction]")].map((input) => Number(input.dataset.selectTransaction));
+        if (event.target.checked) {
+            pageIds.forEach((id) => state.selectedTransactionIds.add(id));
+        } else {
+            pageIds.forEach((id) => state.selectedTransactionIds.delete(id));
+        }
+        renderBulkActionBar();
+        renderHistory();
+    });
+
+    byId("bulkDeleteButton").addEventListener("click", () => {
+        if (state.selectedTransactionIds.size === 0) return;
+        state.bulkDeleteConfirmation = true;
+        byId("bulkDeleteMessage").textContent = `Hapus ${state.selectedTransactionIds.size} transaksi terpilih? Tindakan ini tidak bisa dibatalkan.`;
+        byId("bulkDeleteConfirmation").hidden = false;
+        byId("cancelBulkDelete").focus();
+    });
+
+    byId("cancelBulkDelete").addEventListener("click", () => {
+        state.bulkDeleteConfirmation = false;
+        byId("bulkDeleteConfirmation").hidden = true;
+        byId("bulkDeleteButton").focus();
+    });
+
+    byId("confirmBulkDelete").addEventListener("click", () => {
+        void deleteSelectedTransactions();
+    });
+
     byId("transactionHistory").addEventListener("click", (event) => {
         const row = event.target.closest("[data-transaction-id]");
         if (row) openTransactionDetail(row.dataset.transactionId);

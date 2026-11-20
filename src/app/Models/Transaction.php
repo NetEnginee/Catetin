@@ -161,6 +161,36 @@ class Transaction extends Model
     }
 
     /**
+     * Delete several owned transactions in one query.
+     *
+     * @param array<int|string> $ids
+     * @return int number of rows actually deleted
+     */
+    public function deleteMany(int $userId, array $ids): int
+    {
+        $validIds = [];
+        foreach ($ids as $id) {
+            if (is_int($id) && $id > 0) {
+                $validIds[] = $id;
+            } elseif (is_string($id) && ctype_digit($id) && (int)$id > 0) {
+                $validIds[] = (int)$id;
+            }
+        }
+        $validIds = array_values(array_unique($validIds));
+        if ($validIds === []) {
+            return 0;
+        }
+
+        $placeholders = implode(',', array_fill(0, count($validIds), '?'));
+        $stmt = $this->db->prepare(
+            "DELETE FROM transactions WHERE user_id = ? AND id IN ($placeholders)"
+        );
+        $stmt->execute(array_merge([$userId], $validIds));
+
+        return $stmt->rowCount();
+    }
+
+    /**
      * Delete an owned transaction.
      */
     public function delete(int $userId, int $id): bool

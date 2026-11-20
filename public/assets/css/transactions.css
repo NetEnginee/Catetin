@@ -622,13 +622,76 @@ body.has-transaction-overlay {
     border: 0;
     border-radius: 10px;
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
     background: transparent;
     color: var(--text);
     text-align: left;
     cursor: pointer;
+}
+
+.history-select-checkbox {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    accent-color: var(--link);
+    cursor: pointer;
+}
+
+.bulk-action-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #F3F2EC;
+}
+
+.bulk-action-bar[hidden] {
+    display: none;
+}
+
+.bulk-delete-confirmation {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--error-border, #e8a5a5);
+    border-radius: 10px;
+    background: var(--error-bg, #fdecec);
+    color: var(--error-text, #8a1f1f);
+}
+
+.bulk-delete-confirmation[hidden] {
+    display: none;
+}
+
+.bulk-delete-confirmation p {
+    margin: 0;
+    flex: 1 1 auto;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.bulk-action-bar #bulkDeleteButton,
+.bulk-delete-confirmation button {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--link);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.bulk-delete-confirmation .confirm-delete-button {
+    background: #d03b3b;
 }
 
 .transaction-row:hover {
@@ -1256,7 +1319,7 @@ body.has-transaction-overlay {
     }
 
     .transaction-row {
-        grid-template-columns: 36px minmax(0, 1fr) auto;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
         gap: 8px;
         padding-inline: 2px;
     }

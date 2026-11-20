@@ -274,6 +274,7 @@ $expectedApiRoutes = [
     ['POST', '/api/transactions'],
     ['POST', '/api/transactions/update-date'],
     ['POST', '/api/transactions/delete'],
+    ['POST', '/api/transactions/delete-batch'],
     ['POST', '/api/categories'],
     ['POST', '/api/categories/delete'],
 ];
