@@ -292,6 +292,87 @@ assertTest("category API action returns 201 with new category", resultStatus($ca
 assertTest("category API action rejects duplicates with 422", resultStatus($controller->createCategoryResult(1, ['type' => 'expense', 'name' => 'kategori baru'], true)) === 422);
 assertTest("category API action rejects missing CSRF", resultStatus($controller->createCategoryResult(1, ['type' => 'expense', 'name' => 'Tanpa Token'], false)) === 403);
 
+echo "\n5. Testing category removal:\n";
+
+$removalCategory = $categoryModel->create(1, 'income', 'Kategori Uji Hapus');
+$transactionModel->create(1, 'income', $removalCategory['id'], 11000, 'Pakai kategori 1', '2026-11-20');
+$transactionModel->create(1, 'income', $removalCategory['id'], 12000, 'Pakai kategori 2', '2026-11-20');
+
+assertTest("countUsage counts transactions for an owned category", $categoryModel->countUsage(1, $removalCategory['id']) === 2);
+assertTest("countUsage does not count another user's transactions", $categoryModel->countUsage(2, $removalCategory['id']) === 0);
+
+$existingFallback = null;
+foreach ($categoryModel->listForUser(1)['income'] as $category) {
+    if ($category['name'] === 'Pemasukan lain') {
+        $existingFallback = $category;
+        break;
+    }
+}
+assertTest("ensureFallback returns the existing income fallback", $existingFallback !== null && $categoryModel->ensureFallback(1, 'income')['id'] === $existingFallback['id']);
+
+$expenseFallbackId = null;
+foreach ($categoryModel->listForUser(1)['expense'] as $category) {
+    if ($category['name'] === 'Lain-lain') {
+        $expenseFallbackId = $category['id'];
+        break;
+    }
+}
+$db->exec('DELETE FROM categories WHERE id = ' . (int)$expenseFallbackId);
+$newExpenseFallback = $categoryModel->ensureFallback(1, 'expense');
+$expenseNames = array_column($categoryModel->listForUser(1)['expense'], 'name');
+assertTest("ensureFallback creates a missing expense fallback", $newExpenseFallback['name'] === 'Lain-lain' && in_array('Lain-lain', $expenseNames, true));
+
+$beforeRemoval = array_values(array_filter(
+    $transactionModel->allForUser(1),
+    fn (array $row): bool => $row['category_id'] === $removalCategory['id']
+));
+$removalResult = $categoryModel->deleteWithFallback(1, $removalCategory['id']);
+$afterRemoval = $transactionModel->allForUser(1);
+$preserved = count($beforeRemoval) === 2 && $removalResult['moved'] === 2 && $removalResult['fallback']['name'] === 'Pemasukan lain';
+foreach ($beforeRemoval as $row) {
+    $match = null;
+    foreach ($afterRemoval as $candidate) {
+        if ($candidate['id'] === $row['id']) {
+            $match = $candidate;
+            break;
+        }
+    }
+    $preserved = $preserved && $match !== null
+        && $match['amount'] === $row['amount']
+        && $match['date'] === $row['date']
+        && $match['type'] === $row['type']
+        && $match['category_id'] === $removalResult['fallback']['id'];
+}
+$remainingNames = array_column($categoryModel->listForUser(1)['income'], 'name');
+assertTest("deleteWithFallback reassignment preserves transaction data", $preserved && !in_array('Kategori Uji Hapus', $remainingNames, true));
+
+$fallbackToDelete = $categoryModel->ensureFallback(1, 'income');
+$fallbackTransaction = $transactionModel->create(1, 'income', $fallbackToDelete['id'], 13000, 'Fallback terpakai', '2026-11-20');
+$fallbackRemoval = $categoryModel->deleteWithFallback(1, $fallbackToDelete['id']);
+$afterFallbackRemoval = $transactionModel->allForUser(1);
+$movedTransaction = null;
+foreach ($afterFallbackRemoval as $candidate) {
+    if ($candidate['id'] === $fallbackTransaction['id']) {
+        $movedTransaction = $candidate;
+        break;
+    }
+}
+assertTest(
+    "deleteWithFallback creates a numbered replacement when deleting the fallback",
+    $fallbackRemoval !== null
+        && str_starts_with($fallbackRemoval['fallback']['name'], 'Pemasukan lain')
+        && $fallbackRemoval['fallback']['name'] !== 'Pemasukan lain'
+        && $fallbackRemoval['moved'] >= 1
+        && $movedTransaction !== null
+        && $movedTransaction['category_id'] === $fallbackRemoval['fallback']['id']
+);
+
+assertTest("deleteWithFallback cannot remove another user's category", $categoryModel->deleteWithFallback(2, $userOneIncomeCategory['id']) === null && in_array('Penjualan langsung', array_column($categoryModel->listForUser(1)['income'], 'name'), true));
+
+$unusedCategory = $categoryModel->create(1, 'expense', 'Kategori Kosong');
+$unusedRemoval = $categoryModel->deleteWithFallback(1, $unusedCategory['id']);
+assertTest("deleteWithFallback deletes an unused category with moved = 0", $unusedRemoval['moved'] === 0 && !in_array('Kategori Kosong', array_column($categoryModel->listForUser(1)['expense'], 'name'), true));
+
 Database::disconnect();
 
 echo "\n=====================================================\n";

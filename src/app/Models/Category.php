@@ -7,12 +7,18 @@ namespace App\Models;
 use App\Core\Model;
 use InvalidArgumentException;
 use PDO;
+use Throwable;
 
 /**
  * Category model for income and expense classifications.
  */
 class Category extends Model
 {
+    private const FALLBACK_NAMES = [
+        'income'  => 'Pemasukan lain',
+        'expense' => 'Lain-lain',
+    ];
+
     private const DEFAULTS = [
         'income' => [
             'Penjualan langsung',
@@ -149,6 +155,125 @@ class Category extends Model
             'id'   => (int)$this->db->lastInsertId(),
             'type' => $type,
             'name' => $name,
+        ];
+    }
+
+    /**
+     * Count transactions owned by a user that use a category.
+     */
+    public function countUsage(int $userId, int $categoryId): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM transactions
+             WHERE user_id = :user_id AND category_id = :category_id'
+        );
+        $stmt->execute([
+            ':user_id'     => $userId,
+            ':category_id' => $categoryId,
+        ]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    /**
+     * Return the same-type fallback category, creating it when it is missing.
+     *
+     * @return array{id: int, name: string}
+     */
+    public function ensureFallback(int $userId, string $type): array
+    {
+        $type = strtolower(trim($type));
+        if (!in_array($type, ['income', 'expense'], true)) {
+            throw new InvalidArgumentException('Jenis kategori tidak valid.');
+        }
+
+        $name = self::FALLBACK_NAMES[$type];
+        $stmt = $this->db->prepare(
+            'SELECT id, name FROM categories
+             WHERE user_id = :user_id AND type = :type AND LOWER(name) = LOWER(:name)
+             LIMIT 1'
+        );
+        $stmt->execute([
+            ':user_id' => $userId,
+            ':type'    => $type,
+            ':name'    => $name,
+        ]);
+        $row = $stmt->fetch();
+
+        if ($row !== false) {
+            return [
+                'id'   => (int)$row['id'],
+                'name' => (string)$row['name'],
+            ];
+        }
+
+        return $this->create($userId, $type, $name);
+    }
+
+    /**
+     * Remove one of a user's categories, moving its transactions to a
+     * same-type replacement first so no history is lost.
+     *
+     * @return array{id: int, fallback: array{id: int, name: string}, moved: int}|null
+     */
+    public function deleteWithFallback(int $userId, int $categoryId): ?array
+    {
+        $category = $this->findForUser($userId, $categoryId);
+        if ($category === null) {
+            return null;
+        }
+
+        $type = (string)$category['type'];
+        $fallback = $this->ensureFallback($userId, $type);
+
+        if ($fallback['id'] === $categoryId) {
+            $baseName = self::FALLBACK_NAMES[$type];
+            for ($suffix = 2; $suffix <= 99; $suffix++) {
+                try {
+                    $fallback = $this->create($userId, $type, $baseName . ' ' . $suffix);
+                    break;
+                } catch (InvalidArgumentException $exception) {
+                    if ($suffix === 99) {
+                        throw $exception;
+                    }
+                }
+            }
+        }
+
+        $this->db->beginTransaction();
+        try {
+            $update = $this->db->prepare(
+                'UPDATE transactions
+                 SET category_id = :fallback, updated_at = CURRENT_TIMESTAMP
+                 WHERE user_id = :user_id AND category_id = :old'
+            );
+            $update->execute([
+                ':fallback' => $fallback['id'],
+                ':user_id'  => $userId,
+                ':old'      => $categoryId,
+            ]);
+            $moved = $update->rowCount();
+
+            $delete = $this->db->prepare(
+                'DELETE FROM categories WHERE user_id = :user_id AND id = :id'
+            );
+            $delete->execute([
+                ':user_id' => $userId,
+                ':id'      => $categoryId,
+            ]);
+
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $exception;
+        }
+
+        return [
+            'id'       => $categoryId,
+            'fallback' => $fallback,
+            'moved'    => $moved,
         ];
     }
 }
