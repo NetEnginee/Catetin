@@ -292,6 +292,13 @@ assertTest("category API action returns 201 with new category", resultStatus($ca
 assertTest("category API action rejects duplicates with 422", resultStatus($controller->createCategoryResult(1, ['type' => 'expense', 'name' => 'kategori baru'], true)) === 422);
 assertTest("category API action rejects missing CSRF", resultStatus($controller->createCategoryResult(1, ['type' => 'expense', 'name' => 'Tanpa Token'], false)) === 403);
 
+$removableCategoryId = (int)resultBody($categoryResult)['data']['id'];
+assertTest("removeCategoryResult returns 403 without CSRF and deletes nothing", resultStatus($controller->removeCategoryResult(1, ['id' => $removableCategoryId], false)) === 403 && in_array('Kategori Baru', array_column($categoryModel->listForUser(1)['expense'], 'name'), true));
+assertTest("removeCategoryResult returns 422 for an invalid id", resultStatus($controller->removeCategoryResult(1, ['id' => 'abc'], true)) === 422);
+assertTest("removeCategoryResult returns 404 for another user's category", resultStatus($controller->removeCategoryResult(2, ['id' => $userOneIncomeCategory['id']], true)) === 404);
+$removalApiResult = $controller->removeCategoryResult(1, ['id' => $removableCategoryId], true);
+assertTest("removeCategoryResult returns 200 with moved count and fallback", resultStatus($removalApiResult) === 200 && resultBody($removalApiResult)['data']['moved'] === 0 && resultBody($removalApiResult)['data']['fallback']['name'] === 'Lain-lain');
+
 echo "\n5. Testing category removal:\n";
 
 $removalCategory = $categoryModel->create(1, 'income', 'Kategori Uji Hapus');

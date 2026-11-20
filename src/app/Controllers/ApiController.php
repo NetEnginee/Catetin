@@ -136,6 +136,22 @@ class ApiController extends Controller
     }
 
     /**
+     * POST /api/categories/delete
+     */
+    public function deleteCategory(): void
+    {
+        $userId = Auth::id();
+        if ($userId === null) {
+            $this->json($this->failure('Autentikasi diperlukan.', 401)['body'], 401);
+            return;
+        }
+
+        $body = $this->requestBody();
+        $result = $this->removeCategoryResult($userId, $body, $this->csrfIsValid($body));
+        $this->json($result['body'], $result['status']);
+    }
+
+    /**
      * Testable payload for GET /api/transactions.
      */
     public function transactionsPayload(int $userId): array
@@ -283,6 +299,33 @@ class ApiController extends Controller
         } catch (Throwable $exception) {
             error_log('Create category API error: ' . $exception->getMessage());
             return $this->failure('Kategori gagal disimpan.', 500);
+        }
+    }
+
+    /**
+     * Testable category removal logic.
+     */
+    public function removeCategoryResult(int $userId, array $body, bool $csrfValid): array
+    {
+        if (!$csrfValid) {
+            return $this->failure('Token CSRF tidak valid.', 403);
+        }
+
+        $id = $this->positiveInt($body['id'] ?? null);
+        if ($id === null) {
+            return $this->failure('Data kategori tidak valid.', 422);
+        }
+
+        try {
+            $result = $this->categoryModel->deleteWithFallback($userId, $id);
+            if ($result === null) {
+                return $this->failure('Kategori tidak ditemukan.', 404);
+            }
+
+            return $this->success($result);
+        } catch (Throwable $exception) {
+            error_log('Remove category API error: ' . $exception->getMessage());
+            return $this->failure('Kategori gagal dihapus.', 500);
         }
     }
 

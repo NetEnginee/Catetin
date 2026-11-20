@@ -169,5 +169,6 @@ class App
         $this->router->post('/api/transactions/update-date', [ApiController::class, 'updateTransactionDate'], ['auth']);
         $this->router->post('/api/transactions/delete', [ApiController::class, 'deleteTransaction'], ['auth']);
         $this->router->post('/api/categories', [ApiController::class, 'createCategory'], ['auth']);
+        $this->router->post('/api/categories/delete', [ApiController::class, 'deleteCategory'], ['auth']);
     }
 }

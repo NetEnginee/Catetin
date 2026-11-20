@@ -275,6 +275,7 @@ $expectedApiRoutes = [
     ['POST', '/api/transactions/update-date'],
     ['POST', '/api/transactions/delete'],
     ['POST', '/api/categories'],
+    ['POST', '/api/categories/delete'],
 ];
 foreach ($expectedApiRoutes as [$method, $path]) {
     assertTest(
