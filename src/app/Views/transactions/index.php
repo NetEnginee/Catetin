@@ -100,18 +100,6 @@
                     <button class="save-transaction-button" id="saveTransactionButton" type="submit">Simpan pemasukan</button>
                 </form>
             </section>
-
-            <section class="transaction-panel category-summary-panel" aria-labelledby="categorySummaryTitle">
-                <h2 id="categorySummaryTitle">Rekap per kategori</h2>
-                <div class="category-summary-section">
-                    <h3>Pemasukan</h3>
-                    <div id="incomeCategories"></div>
-                </div>
-                <div class="category-summary-section">
-                    <h3>Pengeluaran</h3>
-                    <div id="expenseCategories"></div>
-                </div>
-            </section>
         </div>
 
         <section class="transaction-panel transaction-history-panel" aria-labelledby="transactionHistoryTitle">

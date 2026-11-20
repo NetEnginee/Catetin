@@ -152,7 +152,6 @@ class ApiController extends Controller
             'categories' => $categories,
             'transactions' => $transactions,
             'summary' => $this->summarize($transactions),
-            'category_breakdown' => $this->breakdown($transactions),
         ];
     }
 
@@ -380,30 +379,4 @@ class ApiController extends Controller
         ];
     }
 
-    /**
-     * Category totals grouped by transaction type.
-     */
-    private function breakdown(array $transactions): array
-    {
-        $grouped = ['income' => [], 'expense' => []];
-        foreach ($transactions as $transaction) {
-            $type = $transaction['type'];
-            if (!isset($grouped[$type])) {
-                continue;
-            }
-            $name = $transaction['category'];
-            $grouped[$type][$name] = ($grouped[$type][$name] ?? 0) + $transaction['amount'];
-        }
-
-        foreach ($grouped as $type => $totals) {
-            ksort($totals);
-            $grouped[$type] = array_map(
-                fn (string $name, int $total): array => ['name' => $name, 'total' => $total],
-                array_keys($totals),
-                array_values($totals)
-            );
-        }
-
-        return $grouped;
-    }
 }

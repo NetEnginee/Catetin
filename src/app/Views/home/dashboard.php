@@ -72,7 +72,6 @@
             <div class="summary-card-footer">
                 <div>
                     <p class="summary-trend" id="profitTrend"></p>
-                    <p class="summary-card-note">Penjualan dikurangi pengeluaran</p>
                 </div>
                 <svg class="sparkline" id="profitSparkline" viewBox="0 0 120 40" role="img"></svg>
             </div>

@@ -242,7 +242,7 @@ $payload = $controller->transactionsPayload(1);
 assertTest("transactions payload exposes server date meta", $payload['meta']['today'] === Transaction::today() && $payload['meta']['earliest_date'] === Transaction::EARLIEST_DATE);
 assertTest("transactions payload exposes user-scoped categories", count($payload['categories']['income']) === 4 && count($payload['categories']['expense']) === 5);
 assertTest("transactions payload exposes user-scoped rows", count($payload['transactions']) === 4 && !str_contains(json_encode($payload), '999999'));
-assertTest("transactions payload exposes summary and breakdown", isset($payload['summary']['balance'], $payload['category_breakdown']['income']));
+assertTest("transactions payload exposes summary", isset($payload['summary']['balance']));
 
 $dashboardPayload = $controller->dashboardPayload(1, '2026-11-19');
 assertTest("dashboard payload uses aggregate data", $dashboardPayload['summary']['sales'] === 400000 && $dashboardPayload['date'] === '2026-11-19');

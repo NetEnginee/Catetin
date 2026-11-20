@@ -167,8 +167,8 @@
         }
         if (state.historyCategory !== "all") {
             const available = state.historyType === "all"
-                ? [...state.categories.income, ...state.categories.expense].map((category) => category.name)
-                : state.categories[state.historyType].map((category) => category.name);
+                ? [...state.categories.income, ...state.categories.expense].map((category) => String(category.id))
+                : state.categories[state.historyType].map((category) => String(category.id));
             if (!available.includes(state.historyCategory)) state.historyCategory = "all";
         }
     }
@@ -196,30 +196,6 @@
         byId("transactionCount").textContent = `${transactions.length} transaksi`;
     }
 
-    function renderCategoryBreakdown(type, containerId) {
-        const container = byId(containerId);
-        const transactions = getTransactionsForDate().filter((transaction) => transaction.type === type);
-        const totals = new Map();
-        transactions.forEach((transaction) => {
-            totals.set(transaction.category, (totals.get(transaction.category) || 0) + transaction.amount);
-        });
-        const categories = [...totals.entries()].filter(([, amount]) => amount > 0);
-        const total = categories.reduce((sum, [, amount]) => sum + amount, 0);
-
-        if (total === 0) {
-            const label = type === "income" ? "pemasukan" : "pengeluaran";
-            container.innerHTML = `<p class="category-breakdown-empty">Belum ada ${label} pada periode ini.</p>`;
-            return;
-        }
-
-        const maximum = Math.max(...categories.map(([, amount]) => amount));
-        container.innerHTML = `<div class="category-breakdown-list">${categories.map(([name, amount]) => {
-            const percentage = (amount / total * 100).toFixed(1).replace(".", ",");
-            const width = (amount / maximum * 100).toFixed(2);
-            return `<div class="category-breakdown-item"><div class="category-breakdown-heading"><span>${escapeHtml(name)}</span><span>${percentage}% · ${formatRupiah(amount)}</span></div><div class="category-breakdown-bar-track"><div class="category-breakdown-bar is-${type}" style="width:${width}%"></div></div></div>`;
-        }).join("")}</div>`;
-    }
-
     function setHistoryTypeButtons() {
         document.querySelectorAll("[data-history-type]").forEach((button) => {
             const active = button.dataset.historyType === state.historyType;
@@ -230,14 +206,29 @@
 
     function renderHistoryCategoryOptions() {
         const select = byId("historyCategoryFilter");
-        const available = state.historyType === "all"
-            ? [...new Set([...state.categories.income, ...state.categories.expense].map((category) => category.name))]
-            : state.categories[state.historyType].map((category) => category.name);
+        const groups = state.historyType === "all"
+            ? [
+                { label: "Pemasukan", categories: state.categories.income },
+                { label: "Pengeluaran", categories: state.categories.expense },
+            ]
+            : [{ label: null, categories: state.categories[state.historyType] }];
+
+        const available = groups.flatMap((group) => group.categories.map((category) => String(category.id)));
         if (state.historyCategory !== "all" && !available.includes(state.historyCategory)) {
             state.historyCategory = "all";
         }
-        select.innerHTML = '<option value="all">Semua kategori</option>' +
-            available.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
+
+        let options = '<option value="all">Semua kategori</option>';
+        groups.forEach((group) => {
+            if (group.categories.length === 0) return;
+            const items = group.categories.map((category) =>
+                `<option value="${escapeHtml(String(category.id))}">${escapeHtml(category.name)}</option>`
+            ).join("");
+            options += group.label
+                ? `<optgroup label="${group.label}">${items}</optgroup>`
+                : items;
+        });
+        select.innerHTML = options;
         select.value = state.historyCategory;
     }
 
@@ -248,7 +239,7 @@
         const periodTransactions = getTransactionsForDate();
         const filtered = periodTransactions
             .filter((transaction) => state.historyType === "all" || transaction.type === state.historyType)
-            .filter((transaction) => state.historyCategory === "all" || transaction.category === state.historyCategory)
+            .filter((transaction) => state.historyCategory === "all" || String(transaction.category_id) === state.historyCategory)
             .sort(byDateAndTime);
         byId("historyResultCount").textContent = `${filtered.length} transaksi`;
 
@@ -304,8 +295,6 @@
         byId("periodLabel").textContent = state.pageDate === "all" ? "Semua tanggal" : formatDate(state.pageDate);
         byId("periodSummary").textContent = getPagePeriodLabel();
         renderSummary();
-        renderCategoryBreakdown("income", "incomeCategories");
-        renderCategoryBreakdown("expense", "expenseCategories");
         renderHistory();
     }
 

@@ -430,76 +430,6 @@ body.has-transaction-overlay {
     cursor: pointer;
 }
 
-.category-summary-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.category-summary-section {
-    min-width: 0;
-}
-
-.category-summary-section h3 {
-    margin: 0 0 12px;
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.category-breakdown-list {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
-
-.category-breakdown-item {
-    min-width: 0;
-}
-
-.category-breakdown-heading {
-    margin-bottom: 6px;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    color: var(--text);
-    font-size: 12px;
-    line-height: 1.4;
-}
-
-.category-breakdown-heading span:last-child {
-    color: var(--muted);
-    white-space: nowrap;
-}
-
-.category-breakdown-bar-track {
-    height: 14px;
-    overflow: hidden;
-    border-radius: 0 4px 4px 0;
-    background: #EFEEE8;
-}
-
-.category-breakdown-bar {
-    height: 100%;
-    border-radius: 0 4px 4px 0;
-}
-
-.category-breakdown-bar.is-income {
-    background: var(--sales);
-}
-
-.category-breakdown-bar.is-expense {
-    background: var(--expenses);
-}
-
-.category-breakdown-empty {
-    margin: 0;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.5;
-}
-
 .transaction-history-panel {
     min-height: 440px;
 }
@@ -1114,7 +1044,7 @@ body.has-transaction-overlay {
     }
 
     .transaction-layout {
-        grid-template-columns: 1.1fr 0.9fr;
+        grid-template-columns: minmax(0, 1fr);
         gap: 16px;
     }
 
@@ -1123,12 +1053,7 @@ body.has-transaction-overlay {
     }
 
     .transaction-form-panel {
-        grid-column: 1;
-        grid-row: 1;
-    }
-
-    .category-summary-panel {
-        grid-column: 2;
+        grid-column: 1 / -1;
         grid-row: 1;
     }
 
