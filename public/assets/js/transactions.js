@@ -102,6 +102,12 @@
         byId("addCategoryButton").disabled = isBusy;
     }
 
+    function resetDeleteButtons() {
+        byId("showDeleteConfirmation").disabled = false;
+        byId("confirmDeleteTransaction").disabled = false;
+        byId("cancelDeleteTransaction").disabled = false;
+    }
+
     function clearFormFeedback() {
         byId("transactionFormError").hidden = true;
         byId("transactionFormSuccess").hidden = true;
@@ -477,6 +483,7 @@
         renderHistory();
         renderTransactionDetail(transaction);
         state.deleteConfirmation = false;
+        resetDeleteButtons();
         byId("deleteConfirmation").hidden = true;
         byId("showDeleteConfirmation").hidden = false;
         byId("transactionDetailScrim").hidden = false;
@@ -493,6 +500,7 @@
         }
         state.detailTransactionId = null;
         state.deleteConfirmation = false;
+        resetDeleteButtons();
         byId("deleteConfirmation").hidden = true;
         byId("showDeleteConfirmation").hidden = false;
         clearDetailError();
@@ -600,6 +608,7 @@
         if (!transaction) return;
         const confirmButton = byId("confirmDeleteTransaction");
         const cancelButton = byId("cancelDeleteTransaction");
+        if (confirmButton.disabled || cancelButton.disabled) return;
         confirmButton.disabled = true;
         cancelButton.disabled = true;
         try {
@@ -617,6 +626,7 @@
             byId("transactionHistoryTitle").focus();
         } catch (error) {
             showDetailError(error.message);
+        } finally {
             confirmButton.disabled = false;
             cancelButton.disabled = false;
         }
@@ -818,6 +828,7 @@
     });
 
     async function init() {
+        window.CatetinLoader?.hold();
         setBusy(true);
         byId("periodSummary").textContent = "Memuat data transaksi...";
         byId("historyResultCount").textContent = "Memuat...";
@@ -834,6 +845,7 @@
             byId("historyEmptyState").hidden = false;
         } finally {
             setBusy(false);
+            window.CatetinLoader?.release();
         }
     }
 

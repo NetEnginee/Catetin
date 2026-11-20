@@ -241,7 +241,7 @@
       const x = (index) => left + (index * (right - left)) / 9;
       const line = (values) => values.map((value, index) => `${index ? "L" : "M"}${x(index).toFixed(2)} ${y(value).toFixed(2)}`).join(" ");
       const ticks = [0, chartScale / 3, 2 * chartScale / 3, chartScale];
-      const tickLabels = (value) => compactRupiah(Math.round(value));
+      const tickLabels = (value) => compactRupiah(Math.round(value)).replace(/^Rp /, "");
       const yLabels = ticks.map((value) => `<text class="chart-axis-label${mobile ? " chart-axis-label-mobile" : ""}" x="${left - 10}" y="${y(value) + 4}" text-anchor="end">${tickLabels(value)}</text>`).join("");
       const grid = ticks.map((value) => `<line class="${value === 0 ? "chart-baseline" : "chart-gridline"}" x1="${left}" y1="${y(value)}" x2="${right}" y2="${y(value)}"></line>`).join("");
       const xLabels = (mobile ? [0, 3, 6, 9] : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -451,6 +451,7 @@
   });
 
   async function init() {
+    window.CatetinLoader?.hold();
     try {
       const data = await api("/api/dashboard");
       currentData = data;
@@ -459,12 +460,14 @@
       selectedDate = data.date || today;
       visibleMonth = new Date(parseDate(selectedDate).getFullYear(), parseDate(selectedDate).getMonth(), 1);
       renderCalendar();
-      void renderDashboard();
+      await renderDashboard();
     } catch (error) {
       byId("selectedDateLabel").textContent = "Dashboard";
       byId("dashboardDateSummary").textContent = error.message;
       byId("chartEmptyDescription").textContent = error.message;
       byId("chartEmptyState").hidden = false;
+    } finally {
+      window.CatetinLoader?.release();
     }
   }
 

@@ -38,7 +38,7 @@ $navigation = [
 </head>
 <body>
     <noscript><style>#pageLoader { display: none !important; }</style></noscript>
-    <div class="page-loader is-showing" id="pageLoader" role="status" aria-label="Memuat halaman" aria-live="polite">
+    <div class="page-loader" id="pageLoader" role="status" aria-label="Memuat halaman" aria-live="polite">
         <div class="page-loader-content">
             <span class="page-loader-spinner" aria-hidden="true"></span>
             <span>Memuat halaman...</span>

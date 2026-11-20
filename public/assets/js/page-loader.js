@@ -5,9 +5,13 @@
   const minimumDuration = 200;
   let startedAt = performance.now();
   let timer = null;
+  let hiding = false;
+  let documentLoaded = document.readyState === "complete";
+  let pendingTasks = 0;
 
   function show() {
     window.clearTimeout(timer);
+    hiding = false;
     const shouldRestartAnimation =
       loader.hidden || loader.classList.contains("is-hiding");
     startedAt = performance.now();
@@ -20,6 +24,9 @@
   }
 
   function hide() {
+    if (hiding || !documentLoaded || pendingTasks > 0 || loader.hidden) return;
+    hiding = true;
+
     const remaining = Math.max(
       0,
       minimumDuration - (performance.now() - startedAt),
@@ -34,6 +41,7 @@
         loader.hidden = true;
         loader.classList.remove("is-hiding");
         timer = null;
+        hiding = false;
         return;
       }
 
@@ -42,15 +50,36 @@
         loader.hidden = true;
         loader.classList.remove("is-hiding");
         timer = null;
+        hiding = false;
       }, fadeDuration);
     }, remaining);
   }
 
+  // Page scripts register their initial data load here so the overlay stays
+  // up until both the document and the page's data are ready.
+  window.CatetinLoader = {
+    hold() {
+      pendingTasks += 1;
+      show();
+    },
+    release() {
+      pendingTasks = Math.max(0, pendingTasks - 1);
+      hide();
+    },
+  };
+
   show();
-  if (document.readyState === "complete") {
+  if (documentLoaded) {
     hide();
   } else {
-    window.addEventListener("load", hide, { once: true });
+    window.addEventListener(
+      "load",
+      () => {
+        documentLoaded = true;
+        hide();
+      },
+      { once: true },
+    );
   }
 
   document.addEventListener("click", (event) => {
@@ -98,5 +127,7 @@
     loader.hidden = true;
     loader.classList.remove("is-showing", "is-hiding");
     timer = null;
+    hiding = false;
+    pendingTasks = 0;
   });
 })();
