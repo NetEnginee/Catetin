@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core;
 
+use App\Controllers\ApiController;
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\TransactionsController;
@@ -160,5 +161,13 @@ class App
         // Authenticated dashboard placeholder
         $this->router->get('/dashboard', [HomeController::class, 'dashboard'], ['auth']);
         $this->router->get('/transactions', [TransactionsController::class, 'index'], ['auth']);
+
+        // Database-backed JSON API
+        $this->router->get('/api/transactions', [ApiController::class, 'transactions'], ['auth']);
+        $this->router->get('/api/dashboard', [ApiController::class, 'dashboard'], ['auth']);
+        $this->router->post('/api/transactions', [ApiController::class, 'createTransaction'], ['auth']);
+        $this->router->post('/api/transactions/update-date', [ApiController::class, 'updateTransactionDate'], ['auth']);
+        $this->router->post('/api/transactions/delete', [ApiController::class, 'deleteTransaction'], ['auth']);
+        $this->router->post('/api/categories', [ApiController::class, 'createCategory'], ['auth']);
     }
 }

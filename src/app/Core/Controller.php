@@ -40,9 +40,9 @@ abstract class Controller
     /**
      * Validate CSRF token from POST request.
      */
-    protected function validateCsrf(): bool
+    protected function validateCsrf(?string $token = null): bool
     {
-        $token = $_POST['_csrf_token'] ?? null;
-        return Session::validateCsrfToken($token);
+        $token ??= $_POST['_csrf_token'] ?? null;
+        return Session::validateCsrfToken(is_string($token) ? $token : null);
     }
 }

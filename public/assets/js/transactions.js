@@ -1,38 +1,31 @@
 (() => {
-    const today = "2026-11-19";
-    const earliestDate = "2026-01-01";
+    const byId = (id) => document.getElementById(id);
+    const app = byId("transactionsApp");
+    if (!app) return;
+
     const weekdays = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
     const dayNames = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
     const monthNames = [
         "Januari", "Februari", "Maret", "April", "Mei", "Juni",
         "Juli", "Agustus", "September", "Oktober", "November", "Desember",
     ];
-    const categoryOptions = {
-        income: ["Penjualan langsung", "Titip jual", "Pesanan online", "Pemasukan lain"],
-        expense: ["Bahan baku", "Gaji harian", "Sewa dan listrik", "Transportasi", "Lain-lain"],
-    };
     const historyPageSize = 10;
-    const byId = (id) => document.getElementById(id);
-    const app = byId("transactionsApp");
-    if (!app) return;
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+
+    let today = "";
+    let earliestDate = "";
 
     const state = {
         transactions: [],
         usedTransactionIds: new Set(),
-        categories: {
-            income: [...categoryOptions.income],
-            expense: [...categoryOptions.expense],
-        },
-        pageDate: today,
-        formDate: today,
+        categories: { income: [], expense: [] },
+        pageDate: null,
+        formDate: null,
         formType: "income",
         amountDigits: "",
         description: "",
         selectedCategory: "",
         newCategoryName: "",
-        formError: "",
-        formSuccess: "",
-        categoryError: "",
         historyType: "all",
         historyCategory: "all",
         historyPage: 1,
@@ -41,7 +34,7 @@
         detailTransactionId: null,
         deleteConfirmation: false,
         calendarTarget: null,
-        visibleMonth: new Date(2026, 10, 1),
+        visibleMonth: null,
     };
 
     const formatDate = (date, withWeekday = false) => {
@@ -49,10 +42,6 @@
         const value = new Date(year, month - 1, day);
         const formatted = `${day} ${monthNames[month - 1]} ${year}`;
         return withWeekday ? `${dayNames[value.getDay()]}, ${formatted}` : formatted;
-    };
-    const formatDateShort = (date) => {
-        const [year, month, day] = date.split("-").map(Number);
-        return `${day} ${monthNames[month - 1]}`;
     };
     const formatRupiah = (amount) => `Rp ${new Intl.NumberFormat("id-ID").format(amount)}`;
     const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
@@ -71,6 +60,124 @@
         const dayLabel = state.pageDate === today ? "Hari ini" : "Tanggal terpilih";
         return `${formatDate(state.pageDate, true)} · ${dayLabel}`;
     };
+
+    async function api(path, options = {}) {
+        const headers = { Accept: "application/json" };
+        let body;
+        if (options.body !== undefined) {
+            headers["Content-Type"] = "application/json";
+            body = JSON.stringify({
+                ...options.body,
+                _csrf_token: csrfMeta?.getAttribute("content") || "",
+            });
+        }
+
+        let response;
+        try {
+            response = await fetch(path, {
+                method: options.method || "GET",
+                headers,
+                body,
+                credentials: "same-origin",
+            });
+        } catch (error) {
+            throw new Error("Tidak dapat terhubung ke server. Coba lagi.");
+        }
+
+        let payload;
+        try {
+            payload = await response.json();
+        } catch (error) {
+            throw new Error("Respons server tidak dapat dibaca.");
+        }
+
+        if (!response.ok || payload.ok !== true) {
+            throw new Error(payload.error || "Permintaan gagal. Coba lagi.");
+        }
+        return payload.data;
+    }
+
+    function setBusy(isBusy) {
+        byId("saveTransactionButton").disabled = isBusy;
+        byId("addCategoryButton").disabled = isBusy;
+    }
+
+    function clearFormFeedback() {
+        byId("transactionFormError").hidden = true;
+        byId("transactionFormSuccess").hidden = true;
+    }
+
+    function showFormError(message) {
+        byId("transactionFormError").textContent = message;
+        byId("transactionFormError").hidden = false;
+        byId("transactionFormSuccess").hidden = true;
+    }
+
+    function showFormSuccess(message) {
+        byId("transactionFormSuccess").textContent = message;
+        byId("transactionFormSuccess").hidden = false;
+        byId("transactionFormError").hidden = true;
+    }
+
+    function showCategoryError(message) {
+        byId("categoryFeedback").textContent = message;
+        byId("categoryFeedback").hidden = false;
+    }
+
+    function showDetailError(message) {
+        const node = byId("transactionDetailError");
+        if (!node) return;
+        node.textContent = message;
+        node.hidden = false;
+    }
+
+    function clearDetailError() {
+        const node = byId("transactionDetailError");
+        if (node) node.hidden = true;
+    }
+
+    function findCategory(type, name) {
+        return state.categories[type].find((category) => category.name === name) || null;
+    }
+
+    function applyBootstrap(data) {
+        today = data.meta.today;
+        earliestDate = data.meta.earliest_date;
+
+        state.categories = {
+            income: data.categories.income.map((category) => ({ ...category })),
+            expense: data.categories.expense.map((category) => ({ ...category })),
+        };
+        state.transactions = data.transactions.map((transaction) => ({
+            ...transaction,
+            apiId: transaction.id,
+            id: transaction.display_id,
+        }));
+        state.usedTransactionIds = new Set(state.transactions.map((transaction) => transaction.display_id));
+
+        if (state.formDate === null || state.formDate < earliestDate || state.formDate > today) {
+            state.formDate = today;
+        }
+        if (state.pageDate === null || (state.pageDate !== "all" && (state.pageDate < earliestDate || state.pageDate > today))) {
+            state.pageDate = today;
+        }
+        if (state.visibleMonth === null) {
+            const [year, month] = today.split("-").map(Number);
+            state.visibleMonth = new Date(year, month - 1, 1);
+        }
+        if (state.historyCategory !== "all") {
+            const available = state.historyType === "all"
+                ? [...state.categories.income, ...state.categories.expense].map((category) => category.name)
+                : state.categories[state.historyType].map((category) => category.name);
+            if (!available.includes(state.historyCategory)) state.historyCategory = "all";
+        }
+    }
+
+    async function loadTransactions() {
+        const data = await api("/api/transactions");
+        applyBootstrap(data);
+        return data;
+    }
 
     function renderSummary() {
         const transactions = getTransactionsForDate();
@@ -123,11 +230,12 @@
 
     function renderHistoryCategoryOptions() {
         const select = byId("historyCategoryFilter");
-        const previous = state.historyCategory;
         const available = state.historyType === "all"
-            ? [...new Set([...state.categories.income, ...state.categories.expense])]
-            : state.categories[state.historyType];
-        if (previous !== "all" && !available.includes(previous)) state.historyCategory = "all";
+            ? [...new Set([...state.categories.income, ...state.categories.expense].map((category) => category.name))]
+            : state.categories[state.historyType].map((category) => category.name);
+        if (state.historyCategory !== "all" && !available.includes(state.historyCategory)) {
+            state.historyCategory = "all";
+        }
         select.innerHTML = '<option value="all">Semua kategori</option>' +
             available.map((category) => `<option value="${escapeHtml(category)}">${escapeHtml(category)}</option>`).join("");
         select.value = state.historyCategory;
@@ -186,7 +294,7 @@
                     ? '<path d="M12 19V5M6 11l6-6 6 6"></path>'
                     : '<path d="M12 5v14m6-6-6 6-6-6"></path>';
                 const selected = transaction.id === state.selectedTransactionId;
-                return `<button class="transaction-row${selected ? " is-selected" : ""}" type="button" data-transaction-id="${escapeHtml(transaction.id)}" aria-pressed="${selected}"><span class="transaction-type-icon is-${transaction.type}" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="transaction-row-main"><span class="transaction-row-description">${escapeHtml(transaction.description)}</span><span class="transaction-row-meta">${escapeHtml(transaction.category)} · ${escapeHtml(transaction.time)} WIB</span></span><span class="transaction-row-amount${income ? " is-income" : ""}">${sign}${formatRupiah(transaction.amount)}</span></button>`;
+                return `<button class="transaction-row${selected ? " is-selected" : ""}" type="button" data-transaction-id="${escapeHtml(transaction.display_id)}" aria-pressed="${selected}"><span class="transaction-type-icon is-${transaction.type}" aria-hidden="true"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="transaction-row-main"><span class="transaction-row-description">${escapeHtml(transaction.description)}</span><span class="transaction-row-meta">${escapeHtml(transaction.category)} · ${escapeHtml(transaction.time)} WIB</span></span><span class="transaction-row-amount${income ? " is-income" : ""}">${sign}${formatRupiah(transaction.amount)}</span></button>`;
             }).join("");
             return `<div class="transaction-date-group"><div class="transaction-date-group-heading"><span>${heading}</span><span>${groupCounts.get(date)} transaksi</span></div>${rows}</div>`;
         }).join("");
@@ -208,8 +316,8 @@
     function renderCategoryOptions() {
         const container = byId("categoryOptions");
         container.innerHTML = state.categories[state.formType].map((category) => {
-            const selected = state.selectedCategory === category;
-            return `<button class="category-chip${selected ? " is-active" : ""}" type="button" data-form-category="${escapeHtml(category)}" aria-pressed="${selected}">${escapeHtml(category)}</button>`;
+            const selected = state.selectedCategory === category.name;
+            return `<button class="category-chip${selected ? " is-active" : ""}" type="button" data-form-category="${escapeHtml(category.name)}" aria-pressed="${selected}">${escapeHtml(category.name)}</button>`;
         }).join("") + '<button class="add-category-chip" id="toggleNewCategory" type="button" aria-expanded="false">+ Kategori</button>';
         byId("saveTransactionButton").textContent = `Simpan ${state.formType === "income" ? "pemasukan" : "pengeluaran"}`;
     }
@@ -243,9 +351,13 @@
         for (let index = 0; index < trailingCells; index += 1) {
             cells.push('<span class="transaction-calendar-day is-outside" aria-hidden="true"></span>');
         }
+
         byId("transactionCalendarGrid").innerHTML = cells.join("");
-        byId("calendarPreviousMonth").disabled = year === 2026 && month === 0;
-        byId("calendarNextMonth").disabled = year === 2026 && month === 10;
+
+        const [minYear, minMonth] = earliestDate.split("-").map(Number);
+        const [maxYear, maxMonth] = today.split("-").map(Number);
+        byId("calendarPreviousMonth").disabled = year < minYear || (year === minYear && month + 1 < minMonth);
+        byId("calendarNextMonth").disabled = year > maxYear || (year === maxYear && month + 1 > maxMonth);
         byId("calendarAllDates").hidden = state.calendarTarget.kind !== "filter";
     }
 
@@ -303,7 +415,7 @@
     }
 
     function findTransaction(id) {
-        return state.transactions.find((transaction) => transaction.id === id);
+        return state.transactions.find((transaction) => transaction.id === id) || null;
     }
 
     function applyCalendarDate(date) {
@@ -313,22 +425,49 @@
             state.pageDate = date;
             state.historyPage = 1;
             renderPage();
+            closeCalendar(true);
         } else if (target === "form") {
             state.formDate = date;
             clearFormFeedback();
             renderFormDate();
+            closeCalendar(true);
         } else {
-            const transaction = findTransaction(state.detailTransactionId);
-            if (transaction) {
-                transaction.date = date;
-                renderPage();
-                renderTransactionDetail(transaction);
-            }
+            void updateDetailDate(date);
         }
-        closeCalendar(true);
+    }
+
+    async function updateDetailDate(date) {
+        const transaction = findTransaction(state.detailTransactionId);
+        if (!transaction) {
+            closeCalendar(true);
+            return;
+        }
+        const displayId = transaction.display_id;
+        setBusy(true);
+        try {
+            await api("/api/transactions/update-date", {
+                method: "POST",
+                body: { id: transaction.apiId, date },
+            });
+            await loadTransactions();
+            const updated = findTransaction(displayId);
+            if (updated) {
+                state.detailTransactionId = displayId;
+                state.selectedTransactionId = displayId;
+            }
+            renderPage();
+            if (updated) renderTransactionDetail(updated);
+            closeCalendar(true);
+        } catch (error) {
+            showDetailError(error.message);
+            closeCalendar(true);
+        } finally {
+            setBusy(false);
+        }
     }
 
     function renderTransactionDetail(transaction) {
+        clearDetailError();
         const income = transaction.type === "income";
         byId("detailType").textContent = income ? "Pemasukan" : "Pengeluaran";
         byId("detailType").className = `transaction-type-pill is-${transaction.type}`;
@@ -338,7 +477,7 @@
         byId("detailCategory").textContent = transaction.category;
         byId("detailDate").textContent = formatDate(transaction.date);
         byId("detailTime").textContent = `${transaction.time} WIB`;
-        byId("detailId").textContent = transaction.id;
+        byId("detailId").textContent = transaction.display_id;
     }
 
     function openTransactionDetail(id) {
@@ -367,6 +506,7 @@
         state.deleteConfirmation = false;
         byId("deleteConfirmation").hidden = true;
         byId("showDeleteConfirmation").hidden = false;
+        clearDetailError();
         if (restoreFocus) {
             const selectedRow = document.querySelector(`.transaction-row[data-transaction-id="${CSS.escape(state.selectedTransactionId || "")}"]`);
             if (selectedRow) selectedRow.focus();
@@ -374,48 +514,7 @@
         }
     }
 
-    function clearFormFeedback() {
-        state.formError = "";
-        state.formSuccess = "";
-        byId("transactionFormError").hidden = true;
-        byId("transactionFormSuccess").hidden = true;
-    }
-
-    function showFormError(message) {
-        state.formError = message;
-        state.formSuccess = "";
-        byId("transactionFormError").textContent = message;
-        byId("transactionFormError").hidden = false;
-        byId("transactionFormSuccess").hidden = true;
-    }
-
-    function generateTransactionId(date) {
-        const prefix = `TRX-${date.replaceAll("-", "")}-`;
-        let next = 1;
-        for (const id of state.usedTransactionIds) {
-            if (id.startsWith(prefix)) {
-                next = Math.max(next, (Number(id.slice(prefix.length)) || 0) + 1);
-            }
-        }
-        let id = `${prefix}${String(next).padStart(3, "0")}`;
-        while (state.usedTransactionIds.has(id)) {
-            next += 1;
-            id = `${prefix}${String(next).padStart(3, "0")}`;
-        }
-        state.usedTransactionIds.add(id);
-        return id;
-    }
-
-    function currentTime() {
-        return new Intl.DateTimeFormat("id-ID", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hourCycle: "h23",
-            timeZone: "Asia/Jakarta",
-        }).format(new Date()).replace(":", ".");
-    }
-
-    function saveTransaction(event) {
+    async function saveTransaction(event) {
         event.preventDefault();
         clearFormFeedback();
         const amount = Number(state.amountDigits);
@@ -424,67 +523,80 @@
             byId("transactionAmount").focus();
             return;
         }
-        if (!state.selectedCategory) {
+        const category = findCategory(state.formType, state.selectedCategory);
+        if (!category) {
             showFormError("Pilih kategori transaksi.");
             byId("categoryOptions").querySelector("button")?.focus();
             return;
         }
 
-        const category = state.selectedCategory;
-        const transaction = {
-            id: generateTransactionId(state.formDate),
-            date: state.formDate,
-            time: currentTime(),
-            type: state.formType,
-            category,
-            description: state.description.trim() || category,
-            amount,
-        };
-        state.transactions.push(transaction);
-        state.historyPage = 1;
-        state.amountDigits = "";
-        state.description = "";
-        byId("transactionAmount").value = "";
-        byId("transactionDescription").value = "";
-        renderPage();
-        state.formSuccess = `${state.formType === "income" ? "Pemasukan" : "Pengeluaran"} ${formatRupiah(amount)} tersimpan pada ${formatDate(transaction.date)}.`;
-        byId("transactionFormSuccess").textContent = state.formSuccess;
-        byId("transactionFormSuccess").hidden = false;
-        byId("transactionAmount").focus();
+        setBusy(true);
+        try {
+            const created = await api("/api/transactions", {
+                method: "POST",
+                body: {
+                    type: state.formType,
+                    amount: state.amountDigits,
+                    category_id: category.id,
+                    description: state.description.trim() || category.name,
+                    date: state.formDate,
+                },
+            });
+            await loadTransactions();
+            state.historyPage = 1;
+            state.amountDigits = "";
+            state.description = "";
+            byId("transactionAmount").value = "";
+            byId("transactionDescription").value = "";
+            state.selectedCategory = "";
+            renderPage();
+            renderCategoryOptions();
+            renderFormDate();
+            showFormSuccess(`${state.formType === "income" ? "Pemasukan" : "Pengeluaran"} ${formatRupiah(created.amount)} tersimpan pada ${formatDate(created.date)}.`);
+            byId("transactionAmount").focus();
+        } catch (error) {
+            showFormError(error.message);
+        } finally {
+            setBusy(false);
+        }
     }
 
-    function addNewCategory() {
-        state.categoryError = "";
-        byId("categoryFeedback").hidden = true;
+    async function addNewCategory() {
         const name = state.newCategoryName.trim();
         if (!name) {
             showCategoryError("Masukkan nama kategori.");
             byId("newCategoryName").focus();
             return;
         }
-        const duplicate = state.categories[state.formType]
-            .some((category) => category.localeCompare(name, "id", { sensitivity: "base" }) === 0);
+        const duplicate = state.categories[state.formType].some((category) =>
+            category.name.localeCompare(name, "id", { sensitivity: "base" }) === 0);
         if (duplicate) {
             showCategoryError("Kategori tersebut sudah ada.");
             byId("newCategoryName").focus();
             return;
         }
-        state.categories[state.formType].push(name);
-        state.selectedCategory = name;
-        state.newCategoryName = "";
-        state.categoryError = "";
-        clearFormFeedback();
-        byId("newCategoryName").value = "";
-        byId("newCategoryControl").hidden = true;
-        renderCategoryOptions();
-        byId("categoryOptions").querySelector(`[data-form-category="${CSS.escape(name)}"]`)?.focus();
-        renderHistoryCategoryOptions();
-    }
 
-    function showCategoryError(message) {
-        state.categoryError = message;
-        byId("categoryFeedback").textContent = message;
-        byId("categoryFeedback").hidden = false;
+        setBusy(true);
+        try {
+            await api("/api/categories", {
+                method: "POST",
+                body: { type: state.formType, name },
+            });
+            await loadTransactions();
+            state.selectedCategory = name;
+            state.newCategoryName = "";
+            byId("newCategoryName").value = "";
+            byId("newCategoryControl").hidden = true;
+            byId("categoryFeedback").hidden = true;
+            clearFormFeedback();
+            renderCategoryOptions();
+            renderHistoryCategoryOptions();
+            byId("categoryOptions").querySelector(`[data-form-category="${CSS.escape(name)}"]`)?.focus();
+        } catch (error) {
+            showCategoryError(error.message);
+        } finally {
+            setBusy(false);
+        }
     }
 
     function resetHistoryFilters() {
@@ -494,7 +606,36 @@
         renderHistory();
     }
 
-    byId("transactionForm").addEventListener("submit", saveTransaction);
+    async function deleteSelectedTransaction() {
+        const transaction = findTransaction(state.detailTransactionId);
+        if (!transaction) return;
+        const confirmButton = byId("confirmDeleteTransaction");
+        const cancelButton = byId("cancelDeleteTransaction");
+        confirmButton.disabled = true;
+        cancelButton.disabled = true;
+        try {
+            await api("/api/transactions/delete", {
+                method: "POST",
+                body: { id: transaction.apiId },
+            });
+            await loadTransactions();
+            state.deleteConfirmation = false;
+            closeCalendar();
+            closeTransactionDetail(false);
+            state.selectedTransactionId = null;
+            renderPage();
+            byId("transactionHistoryTitle").setAttribute("tabindex", "-1");
+            byId("transactionHistoryTitle").focus();
+        } catch (error) {
+            showDetailError(error.message);
+            confirmButton.disabled = false;
+            cancelButton.disabled = false;
+        }
+    }
+
+    byId("transactionForm").addEventListener("submit", (event) => {
+        void saveTransaction(event);
+    });
     byId("transactionAmount").addEventListener("input", (event) => {
         const digits = event.target.value.replace(/\D/g, "").slice(0, 11);
         state.amountDigits = digits;
@@ -510,7 +651,6 @@
         if (categoryButton) {
             state.selectedCategory = categoryButton.dataset.formCategory;
             clearFormFeedback();
-            state.categoryError = "";
             byId("categoryFeedback").hidden = true;
             renderCategoryOptions();
             byId("categoryOptions").querySelector(`[data-form-category="${CSS.escape(state.selectedCategory)}"]`)?.focus();
@@ -519,7 +659,7 @@
         if (event.target.closest("#toggleNewCategory")) {
             const control = byId("newCategoryControl");
             control.hidden = !control.hidden;
-            byId("categoryOptions").querySelector("#toggleNewCategory")?.setAttribute("aria-expanded", String(!control.hidden));
+            byId("toggleNewCategory").setAttribute("aria-expanded", String(!control.hidden));
             if (!control.hidden) byId("newCategoryName").focus();
             else {
                 state.newCategoryName = "";
@@ -527,16 +667,17 @@
             }
         }
     });
-    byId("addCategoryButton").addEventListener("click", addNewCategory);
+    byId("addCategoryButton").addEventListener("click", () => {
+        void addNewCategory();
+    });
     byId("newCategoryName").addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
             event.preventDefault();
-            addNewCategory();
+            void addNewCategory();
         }
     });
     byId("newCategoryName").addEventListener("input", (event) => {
         state.newCategoryName = event.target.value;
-        state.categoryError = "";
         byId("categoryFeedback").hidden = true;
     });
     document.querySelectorAll("[data-transaction-type]").forEach((button) => {
@@ -545,7 +686,6 @@
             state.selectedCategory = "";
             state.newCategoryName = "";
             clearFormFeedback();
-            state.categoryError = "";
             byId("categoryFeedback").hidden = true;
             byId("newCategoryControl").hidden = true;
             byId("newCategoryName").value = "";
@@ -640,15 +780,7 @@
         byId("showDeleteConfirmation").focus();
     });
     byId("confirmDeleteTransaction").addEventListener("click", () => {
-        const id = state.detailTransactionId;
-        state.transactions = state.transactions.filter((transaction) => transaction.id !== id);
-        state.deleteConfirmation = false;
-        closeCalendar();
-        closeTransactionDetail(false);
-        state.selectedTransactionId = null;
-        renderPage();
-        byId("transactionHistoryTitle").setAttribute("tabindex", "-1");
-        byId("transactionHistoryTitle").focus();
+        void deleteSelectedTransaction();
     });
 
     document.addEventListener("pointerdown", (event) => {
@@ -696,7 +828,25 @@
         }
     });
 
-    renderCategoryOptions();
-    renderFormDate();
-    renderPage();
+    async function init() {
+        setBusy(true);
+        byId("periodSummary").textContent = "Memuat data transaksi...";
+        byId("historyResultCount").textContent = "Memuat...";
+        try {
+            await loadTransactions();
+            renderCategoryOptions();
+            renderFormDate();
+            renderPage();
+        } catch (error) {
+            byId("periodSummary").textContent = error.message;
+            byId("historyResultCount").textContent = "Data tidak dapat dimuat.";
+            showFormError(error.message);
+            byId("transactionHistory").hidden = true;
+            byId("historyEmptyState").hidden = false;
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    void init();
 })();

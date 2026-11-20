@@ -7,6 +7,7 @@
 use App\Core\Auth;
 use function App\Core\e;
 use function App\Core\csrf_field;
+use function App\Core\csrf_token;
 
 $currentUser = Auth::user();
 $activeNav = $activeNav ?? 'dashboard';
@@ -24,6 +25,7 @@ $navigation = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0E1B1A">
+    <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <title><?= e($title ?? 'Dashboard — Catetin') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

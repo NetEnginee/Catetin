@@ -86,6 +86,18 @@ assertTest("csrf_field() renders hidden input", str_contains(csrf_field(), 'name
 assertTest("validateCsrfToken succeeds with valid token", Session::validateCsrfToken($token));
 assertTest("validateCsrfToken fails with invalid token", !Session::validateCsrfToken('invalid_token_123'));
 assertTest("validateCsrfToken fails with null/empty token", !Session::validateCsrfToken(''));
+assertTest("validateCsrf accepts an explicit token for JSON requests", (new class extends \App\Core\Controller {
+    public function check(string $token): bool
+    {
+        return $this->validateCsrf($token);
+    }
+})->check($token));
+assertTest("validateCsrf rejects an explicit invalid token", !(new class extends \App\Core\Controller {
+    public function check(string $token): bool
+    {
+        return $this->validateCsrf($token);
+    }
+})->check('invalid_token_123'));
 
 // Flash message testing
 Session::setFlash('test_flash', 'Success message');
@@ -245,8 +257,34 @@ $routeLog = [];
 $router->dispatch('GET', '/dashboard');
 assertTest("Router dispatches GET /dashboard", $routeLog === ['GET /dashboard']);
 
-// --- 6. TEST VIEW RENDERING & OUTPUT ESCAPING ---
-echo "\n6. Testing View & Layout Rendering (Catetin Login UI):\n";
+// --- 6. TEST API ROUTE REGISTRATION ---
+echo "\n6. Testing Database API Route Registration:\n";
+
+$app = new App();
+$registerRoutes = new ReflectionMethod(App::class, 'registerRoutes');
+$registerRoutes->setAccessible(true);
+$registerRoutes->invoke($app);
+$routerRoutesProperty = new ReflectionProperty(Router::class, 'routes');
+$routerRoutesProperty->setAccessible(true);
+$registeredRoutes = $routerRoutesProperty->getValue($app->getRouter());
+
+$expectedApiRoutes = [
+    ['GET', '/api/transactions'],
+    ['GET', '/api/dashboard'],
+    ['POST', '/api/transactions'],
+    ['POST', '/api/transactions/update-date'],
+    ['POST', '/api/transactions/delete'],
+    ['POST', '/api/categories'],
+];
+foreach ($expectedApiRoutes as [$method, $path]) {
+    assertTest(
+        "API route {$method} {$path} is registered with auth middleware",
+        isset($registeredRoutes[$method][$path]) && $registeredRoutes[$method][$path]['middleware'] === ['auth']
+    );
+}
+
+// --- 7. TEST VIEW RENDERING & OUTPUT ESCAPING ---
+echo "\n7. Testing View & Layout Rendering (Catetin Login UI):\n";
 
 ob_start();
 View::render('auth/login', [
@@ -281,6 +319,7 @@ assertTest("View renders dashboard calendar and financial panels", str_contains(
 assertTest("View renders both empty-state panels and actions", str_contains($appOutput, 'id="chartEmptyState"') && str_contains($appOutput, 'id="categoryEmptyState"') && str_contains($appOutput, 'Catat transaksi'));
 assertTest("View renders desktop and mobile dashboard navigation", str_contains($appOutput, 'aria-label="Navigasi utama"') && str_contains($appOutput, 'class="mobile-tab-bar"'));
 assertTest("View renders POST logout form with CSRF", str_contains($appOutput, 'action="/logout"') && str_contains($appOutput, 'name="_csrf_token"'));
+assertTest("App layout exposes CSRF token meta for API requests", str_contains($appOutput, 'name="csrf-token"') && str_contains($appOutput, csrf_token()));
 assertTest("View includes dashboard.js", str_contains($appOutput, 'src="/assets/js/dashboard.js"'));
 
 ob_start();
@@ -297,8 +336,8 @@ assertTest("Transactions view loads its own assets", str_contains($transactionsO
 assertTest("Transactions form, history, and detail dialog render", str_contains($transactionsOutput, 'id="transactionForm"') && str_contains($transactionsOutput, 'id="transactionHistory"') && str_contains($transactionsOutput, 'id="transactionDetailPanel"'));
 assertTest("Transactions history includes pagination controls", str_contains($transactionsOutput, 'id="transactionPagination"') && str_contains($transactionsOutput, 'id="historyPreviousPage"') && str_contains($transactionsOutput, 'id="historyNextPage"'));
 
-// --- 7. TEST ERROR VIEWS ---
-echo "\n7. Testing Error Views:\n";
+// --- 8. TEST ERROR VIEWS ---
+echo "\n8. Testing Error Views:\n";
 
 ob_start();
 View::render('errors/403', ['title' => '403 Akses Ditolak', 'message' => 'Dilarang masuk'], 'auth');

@@ -26,11 +26,16 @@ $hasError = !empty($error);
       <p class="mobile-copy">Gunakan dimana saja, kapan saja. Maksimalkan bisnis anda tanpa batas.</p>
     </div>
 
+    <p class="brand-footer">© 2026 CATETIN</p>
   </section>
 
   <section class="form-panel" aria-label="Formulir masuk">
     <form class="login-form" id="loginForm" action="/login" method="POST" autocomplete="off" novalidate>
       <?= csrf_field() ?>
+
+      <?php if ($hasError): ?>
+        <p class="login-error" role="alert"><?= e($error) ?></p>
+      <?php endif; ?>
 
       <header class="form-heading">
         <h2>Masuk</h2>
