@@ -33,6 +33,8 @@
         selectedTransactionId: null,
         detailTransactionId: null,
         deleteConfirmation: false,
+        manageCategories: false,
+        removeCategoryId: null,
         calendarTarget: null,
         visibleMonth: null,
     };
@@ -311,10 +313,81 @@
     function renderCategoryOptions() {
         const container = byId("categoryOptions");
         container.innerHTML = state.categories[state.formType].map((category) => {
+            if (state.manageCategories) {
+                return `<button class="category-chip is-removable" type="button" data-remove-category="${category.id}" aria-label="Hapus kategori ${escapeHtml(category.name)}">${escapeHtml(category.name)}</button>`;
+            }
             const selected = state.selectedCategory === category.name;
             return `<button class="category-chip${selected ? " is-active" : ""}" type="button" data-form-category="${escapeHtml(category.name)}" aria-pressed="${selected}">${escapeHtml(category.name)}</button>`;
-        }).join("") + '<button class="add-category-chip" id="toggleNewCategory" type="button" aria-expanded="false">+ Kategori</button>';
+        }).join("") + (state.manageCategories
+            ? ""
+            : '<button class="add-category-chip" id="toggleNewCategory" type="button" aria-expanded="false">+ Kategori</button>');
+
+        const toggle = byId("toggleRemoveCategory");
+        toggle.textContent = state.manageCategories ? "Selesai" : "Kelola kategori";
+        toggle.setAttribute("aria-pressed", String(state.manageCategories));
         byId("saveTransactionButton").textContent = `Simpan ${state.formType === "income" ? "pemasukan" : "pengeluaran"}`;
+    }
+
+    function closeRemoveConfirmation(restoreFocus = false) {
+        const chip = state.removeCategoryId === null
+            ? null
+            : document.querySelector(`[data-remove-category="${CSS.escape(String(state.removeCategoryId))}"]`);
+        byId("removeCategoryConfirmation").hidden = true;
+        state.removeCategoryId = null;
+        if (restoreFocus && chip) chip.focus();
+    }
+
+    function setManageCategories(enabled) {
+        state.manageCategories = enabled;
+        closeRemoveConfirmation();
+        byId("newCategoryControl").hidden = true;
+        byId("toggleNewCategory")?.setAttribute("aria-expanded", "false");
+        byId("categoryFeedback").hidden = true;
+        renderCategoryOptions();
+    }
+
+    function openRemoveConfirmation(id) {
+        const category = state.categories[state.formType].find((item) => item.id === id);
+        if (!category) return;
+        state.removeCategoryId = id;
+        const used = state.transactions.filter((transaction) => transaction.category_id === id).length;
+        const fallback = state.formType === "income" ? "Pemasukan lain" : "Lain-lain";
+        byId("removeCategoryMessage").textContent =
+            `Hapus kategori ${category.name}? ${used} transaksi akan dipindahkan ke ${fallback}.`;
+        byId("removeCategoryConfirmation").hidden = false;
+        byId("cancelRemoveCategory").focus();
+    }
+
+    async function confirmRemoveCategory() {
+        if (state.removeCategoryId === null) return;
+        const confirmButton = byId("confirmRemoveCategory");
+        const cancelButton = byId("cancelRemoveCategory");
+        if (confirmButton.disabled || cancelButton.disabled) return;
+        confirmButton.disabled = true;
+        cancelButton.disabled = true;
+
+        try {
+            const result = await api("/api/categories/delete", {
+                method: "POST",
+                body: { id: state.removeCategoryId },
+            });
+            await loadTransactions();
+            if (state.selectedCategory && !findCategory(state.formType, state.selectedCategory)) {
+                state.selectedCategory = "";
+            }
+            setManageCategories(false);
+            renderPage();
+            byId("categoryFeedback").textContent =
+                `Kategori dihapus. ${result.moved} transaksi dipindahkan ke ${result.fallback.name}.`;
+            byId("categoryFeedback").hidden = false;
+            byId("toggleRemoveCategory").focus();
+        } catch (error) {
+            byId("categoryFeedback").textContent = error.message;
+            byId("categoryFeedback").hidden = false;
+        } finally {
+            confirmButton.disabled = false;
+            cancelButton.disabled = false;
+        }
     }
 
     function renderCalendar() {
@@ -646,6 +719,12 @@
         clearFormFeedback();
     });
     byId("categoryOptions").addEventListener("click", (event) => {
+        const removeButton = event.target.closest("[data-remove-category]");
+        if (removeButton) {
+            openRemoveConfirmation(Number(removeButton.dataset.removeCategory));
+            return;
+        }
+        if (state.manageCategories) return;
         const categoryButton = event.target.closest("[data-form-category]");
         if (categoryButton) {
             state.selectedCategory = categoryButton.dataset.formCategory;
@@ -666,6 +745,15 @@
             }
         }
     });
+    byId("toggleRemoveCategory").addEventListener("click", () => {
+        setManageCategories(!state.manageCategories);
+        if (state.manageCategories) byId("categoryOptions").querySelector("[data-remove-category]")?.focus();
+        else byId("toggleRemoveCategory").focus();
+    });
+    byId("cancelRemoveCategory").addEventListener("click", () => closeRemoveConfirmation(true));
+    byId("confirmRemoveCategory").addEventListener("click", () => {
+        void confirmRemoveCategory();
+    });
     byId("addCategoryButton").addEventListener("click", () => {
         void addNewCategory();
     });
@@ -684,6 +772,8 @@
             state.formType = button.dataset.transactionType;
             state.selectedCategory = "";
             state.newCategoryName = "";
+            state.manageCategories = false;
+            closeRemoveConfirmation();
             clearFormFeedback();
             byId("categoryFeedback").hidden = true;
             byId("newCategoryControl").hidden = true;
