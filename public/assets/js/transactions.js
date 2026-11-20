@@ -346,12 +346,24 @@
         renderCategoryOptions();
     }
 
+    function removalFallbackName(type, category, categories) {
+        const base = type === "income" ? "Pemasukan lain" : "Lain-lain";
+        if (category.name.toLowerCase() !== base.toLowerCase()) return base;
+        const taken = new Set(categories.map((item) => item.name.toLowerCase()));
+        for (let suffix = 2; suffix <= 99; suffix += 1) {
+            const candidate = `${base} ${suffix}`;
+            if (!taken.has(candidate.toLowerCase())) return candidate;
+        }
+        return base;
+    }
+
     function openRemoveConfirmation(id) {
-        const category = state.categories[state.formType].find((item) => item.id === id);
+        const categories = state.categories[state.formType];
+        const category = categories.find((item) => item.id === id);
         if (!category) return;
         state.removeCategoryId = id;
         const used = state.transactions.filter((transaction) => transaction.category_id === id).length;
-        const fallback = state.formType === "income" ? "Pemasukan lain" : "Lain-lain";
+        const fallback = removalFallbackName(state.formType, category, categories);
         byId("removeCategoryMessage").textContent =
             `Hapus kategori ${category.name}? ${used} transaksi akan dipindahkan ke ${fallback}.`;
         byId("removeCategoryConfirmation").hidden = false;
