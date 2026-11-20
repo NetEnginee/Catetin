@@ -32,10 +32,10 @@ $navigation = [
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/assets/css/app.css">
-    <link rel="stylesheet" href="/assets/css/page-loader.css">
+    <link rel="stylesheet" href="/assets/css/app.css?v=<?= filemtime(__DIR__ . '/../../../../public/assets/css/app.css') ?>">
+    <link rel="stylesheet" href="/assets/css/page-loader.css?v=<?= filemtime(__DIR__ . '/../../../../public/assets/css/page-loader.css') ?>">
     <?php if ($activeNav === 'transactions'): ?>
-        <link rel="stylesheet" href="/assets/css/transactions.css">
+        <link rel="stylesheet" href="/assets/css/transactions.css?v=<?= filemtime(__DIR__ . '/../../../../public/assets/css/transactions.css') ?>">
     <?php endif; ?>
 </head>
 
@@ -134,11 +134,11 @@ $navigation = [
             <?php endforeach; ?>
         </nav>
     </div>
-    <script src="/assets/js/page-loader.js" defer></script>
+    <script src="/assets/js/page-loader.js?v=<?= filemtime(__DIR__ . '/../../../../public/assets/js/page-loader.js') ?>" defer></script>
     <?php if ($activeNav === 'transactions'): ?>
-        <script src="/assets/js/transactions.js" defer></script>
+        <script src="/assets/js/transactions.js?v=<?= filemtime(__DIR__ . '/../../../../public/assets/js/transactions.js') ?>" defer></script>
     <?php else: ?>
-        <script src="/assets/js/dashboard.js" defer></script>
+        <script src="/assets/js/dashboard.js?v=<?= filemtime(__DIR__ . '/../../../../public/assets/js/dashboard.js') ?>" defer></script>
     <?php endif; ?>
 </body>
 

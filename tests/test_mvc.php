@@ -306,7 +306,7 @@ assertTest("View renders username and password fields with autocomplete", str_co
 assertTest("View renders password toggle button with ARIA", str_contains($output, 'id="passwordToggle"') && str_contains($output, 'aria-label="Tampilkan password"'));
 assertTest("View renders remember checkbox and forgot link", str_contains($output, 'id="remember"') && str_contains($output, 'Lupa password?'));
 assertTest("View renders submit button", str_contains($output, 'type="submit">Masuk</button>'));
-assertTest("View includes login.js script", str_contains($output, 'src="/assets/js/login.js"'));
+assertTest("View includes login.js script", str_contains($output, '/assets/js/login.js'));
 
 ob_start();
 View::render('home/dashboard', [
@@ -321,7 +321,7 @@ assertTest("View renders both empty-state panels and actions", str_contains($app
 assertTest("View renders desktop and mobile dashboard navigation", str_contains($appOutput, 'aria-label="Navigasi utama"') && str_contains($appOutput, 'class="mobile-tab-bar"'));
 assertTest("View renders POST logout form with CSRF", str_contains($appOutput, 'action="/logout"') && str_contains($appOutput, 'name="_csrf_token"'));
 assertTest("App layout exposes CSRF token meta for API requests", str_contains($appOutput, 'name="csrf-token"') && str_contains($appOutput, csrf_token()));
-assertTest("View includes dashboard.js", str_contains($appOutput, 'src="/assets/js/dashboard.js"'));
+assertTest("View includes dashboard.js", str_contains($appOutput, '/assets/js/dashboard.js'));
 
 ob_start();
 View::render('transactions/index', [

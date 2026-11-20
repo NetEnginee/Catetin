@@ -109,6 +109,18 @@ button {
   display: flex;
   align-items: center;
   gap: 4px;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.brand-logo,
+.account-control {
+  flex: 1 1 0;
+}
+
+.account-control {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .navigation-link {
@@ -1002,20 +1014,8 @@ button {
     gap: 8px;
   }
 
-  .brand-logo,
-  .account-control {
-    flex: 1 1 0;
-  }
-
-  .account-control {
-    display: flex;
-    justify-content: flex-end;
-  }
-
   .primary-navigation {
-    flex: 0 0 auto;
     gap: 0;
-    justify-content: center;
   }
 
   .navigation-link {
