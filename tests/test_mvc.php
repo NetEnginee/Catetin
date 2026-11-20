@@ -278,6 +278,7 @@ $appOutput = ob_get_clean();
 
 assertTest("View renders with app layout", str_contains($appOutput, 'class="app-shell"') && str_contains($appOutput, 'id="app-main"'));
 assertTest("View renders dashboard calendar and financial panels", str_contains($appOutput, 'id="datePickerTrigger"') && str_contains($appOutput, 'Penjualan dan pengeluaran') && str_contains($appOutput, 'Pengeluaran per kategori'));
+assertTest("View renders both empty-state panels and actions", str_contains($appOutput, 'id="chartEmptyState"') && str_contains($appOutput, 'id="categoryEmptyState"') && str_contains($appOutput, 'Catat transaksi'));
 assertTest("View renders desktop and mobile dashboard navigation", str_contains($appOutput, 'aria-label="Navigasi utama"') && str_contains($appOutput, 'class="mobile-tab-bar"'));
 assertTest("View renders POST logout form with CSRF", str_contains($appOutput, 'action="/logout"') && str_contains($appOutput, 'name="_csrf_token"'));
 assertTest("View includes dashboard.js", str_contains($appOutput, 'src="/assets/js/dashboard.js"'));

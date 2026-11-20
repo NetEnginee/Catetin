@@ -29,11 +29,15 @@
                 hidden>
                 <div class="calendar-header">
                     <button class="calendar-month-button" id="previousMonth" type="button" aria-label="Bulan sebelumnya">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="m15 18-6-6 6-6"></path>
+                        </svg>
                     </button>
                     <h2 id="calendarMonthLabel"></h2>
                     <button class="calendar-month-button" id="nextMonth" type="button" aria-label="Bulan berikutnya">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="m9 18 6-6-6-6"></path>
+                        </svg>
                     </button>
                 </div>
                 <div class="calendar-grid" id="calendarGrid" role="group" aria-label="Tanggal"></div>
@@ -81,11 +85,25 @@
                 <h2 id="chartTitle">Penjualan dan pengeluaran</h2>
                 <p class="chart-subtitle">Kumulatif sejak produk dijual. Selisih kedua garis adalah estimasi keuntungan.</p>
             </header>
-            <div class="chart-legend" aria-label="Legenda grafik">
+            <div class="chart-legend" id="chartLegend" aria-label="Legenda grafik" hidden>
                 <span><i class="legend-line legend-sales" aria-hidden="true"></i>Penjualan</span>
                 <span><i class="legend-line legend-expenses" aria-hidden="true"></i>Pengeluaran</span>
             </div>
-            <div class="chart-canvas" id="chartCanvas">
+            <div class="chart-empty-state" id="chartEmptyState">
+                <svg class="empty-chart-illustration" viewBox="0 0 168 104" aria-hidden="true">
+                    <rect x="1" y="1" width="166" height="102" rx="14" fill="#F7F6F2" stroke="#E1E0D9"></rect>
+                    <path d="M24 20v60h122" fill="none" stroke="#C3C2B7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path d="M32 66h100" fill="none" stroke="#C3C2B7" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 8"></path>
+                    <circle cx="138" cy="66" r="4" fill="#FCFCFB" stroke="#C3C2B7" stroke-width="2"></circle>
+                </svg>
+                <h3>Belum ada transaksi</h3>
+                <p id="chartEmptyDescription"></p>
+                <div class="empty-state-actions">
+                    <a class="primary-action" href="/transactions">Catat transaksi</a>
+                    <button class="secondary-action" id="returnToToday" type="button" hidden>Ke hari ini</button>
+                </div>
+            </div>
+            <div class="chart-canvas" id="chartCanvas" hidden>
                 <svg class="chart-svg chart-svg-desktop" id="desktopChart" viewBox="0 0 720 320" role="img"></svg>
                 <svg class="chart-svg chart-svg-mobile" id="mobileChart" viewBox="0 0 308 216" role="img"></svg>
                 <div class="chart-tooltip" id="chartTooltip" role="status" aria-live="polite" hidden></div>
@@ -95,9 +113,20 @@
         <section class="dashboard-panel category-panel" aria-labelledby="categoryTitle">
             <header class="panel-heading">
                 <h2 id="categoryTitle">Pengeluaran per kategori</h2>
-                <p id="categoryTotal"></p>
+                <p id="categoryTotal">Total Rp 0 hari ini</p>
             </header>
-            <ol class="category-list" id="categoryList"></ol>
+            <div class="category-empty-state" id="categoryEmptyState">
+                <svg viewBox="0 0 280 64" aria-hidden="true" preserveAspectRatio="xMinYMid meet">
+                    <rect x="1" y="6" width="200" height="12" rx="4" fill="none" stroke="#C3C2B7" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+                    <rect x="1" y="26" width="130" height="12" rx="4" fill="none" stroke="#C3C2B7" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+                    <rect x="1" y="46" width="70" height="12" rx="4" fill="none" stroke="#C3C2B7" stroke-width="1.5" stroke-dasharray="4 4"></rect>
+                </svg>
+                <div>
+                    <h3>Belum ada pengeluaran</h3>
+                    <p>Rincian per kategori akan muncul di sini setelah pengeluaran dicatat.</p>
+                </div>
+            </div>
+            <ol class="category-list" id="categoryList" hidden></ol>
         </section>
     </div>
 </div>

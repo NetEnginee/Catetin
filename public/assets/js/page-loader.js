@@ -73,7 +73,6 @@
     const destination = new URL(link.href, window.location.href);
     if (destination.origin !== window.location.origin) return;
     if (
-      destination.hash &&
       destination.pathname === window.location.pathname &&
       destination.search === window.location.search
     ) {
