@@ -6,6 +6,7 @@ namespace App\Core;
 
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
+use App\Controllers\TransactionsController;
 use Throwable;
 
 /**
@@ -158,5 +159,6 @@ class App
 
         // Authenticated dashboard placeholder
         $this->router->get('/dashboard', [HomeController::class, 'dashboard'], ['auth']);
+        $this->router->get('/transactions', [TransactionsController::class, 'index'], ['auth']);
     }
 }

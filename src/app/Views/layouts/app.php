@@ -9,6 +9,7 @@ use function App\Core\e;
 use function App\Core\csrf_field;
 
 $currentUser = Auth::user();
+$activeNav = $activeNav ?? 'dashboard';
 $navigation = [
     ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => 'dashboard'],
     ['label' => 'Transaksi', 'href' => '/transactions', 'icon' => 'transactions'],
@@ -29,6 +30,9 @@ $navigation = [
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/assets/css/app.css">
     <link rel="stylesheet" href="/assets/css/page-loader.css">
+    <?php if ($activeNav === 'transactions'): ?>
+        <link rel="stylesheet" href="/assets/css/transactions.css">
+    <?php endif; ?>
 </head>
 <body>
     <noscript><style>#pageLoader { display: none !important; }</style></noscript>
@@ -51,9 +55,9 @@ $navigation = [
                 <nav class="primary-navigation" aria-label="Navigasi utama">
                     <?php foreach ($navigation as $item): ?>
                         <a
-                            class="navigation-link<?= $item['icon'] === 'dashboard' ? ' is-active' : '' ?>"
+                            class="navigation-link<?= $item['icon'] === $activeNav ? ' is-active' : '' ?>"
                             href="<?= e($item['href']) ?>"
-                            <?= $item['icon'] === 'dashboard' ? 'aria-current="page"' : '' ?>>
+                            <?= $item['icon'] === $activeNav ? 'aria-current="page"' : '' ?>>
                             <?= e($item['label']) ?>
                         </a>
                     <?php endforeach; ?>
@@ -91,9 +95,9 @@ $navigation = [
         <nav class="mobile-tab-bar" aria-label="Navigasi utama">
             <?php foreach ($navigation as $item): ?>
                 <a
-                    class="mobile-tab<?= $item['icon'] === 'dashboard' ? ' is-active' : '' ?>"
+                    class="mobile-tab<?= $item['icon'] === $activeNav ? ' is-active' : '' ?>"
                     href="<?= e($item['href']) ?>"
-                    <?= $item['icon'] === 'dashboard' ? 'aria-current="page"' : '' ?>
+                    <?= $item['icon'] === $activeNav ? 'aria-current="page"' : '' ?>
                     <?= $item['icon'] === 'products' ? 'aria-label="Produk & Produksi"' : '' ?>>
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <?php if ($item['icon'] === 'dashboard'): ?>
@@ -120,6 +124,10 @@ $navigation = [
         </nav>
     </div>
     <script src="/assets/js/page-loader.js" defer></script>
-    <script src="/assets/js/dashboard.js" defer></script>
+    <?php if ($activeNav === 'transactions'): ?>
+        <script src="/assets/js/transactions.js" defer></script>
+    <?php else: ?>
+        <script src="/assets/js/dashboard.js" defer></script>
+    <?php endif; ?>
 </body>
 </html>

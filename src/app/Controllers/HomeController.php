@@ -34,8 +34,9 @@ class HomeController extends Controller
         $user = Auth::user();
 
         $this->view('home/dashboard', [
-            'title' => 'Dashboard — Catetin',
-            'user'  => $user,
+            'title'      => 'Dashboard — Catetin',
+            'user'       => $user,
+            'activeNav'  => 'dashboard',
         ], 'app');
     }
 }

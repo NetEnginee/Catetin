@@ -283,6 +283,20 @@ assertTest("View renders desktop and mobile dashboard navigation", str_contains(
 assertTest("View renders POST logout form with CSRF", str_contains($appOutput, 'action="/logout"') && str_contains($appOutput, 'name="_csrf_token"'));
 assertTest("View includes dashboard.js", str_contains($appOutput, 'src="/assets/js/dashboard.js"'));
 
+ob_start();
+View::render('transactions/index', [
+    'title'     => 'Transaksi — Catetin',
+    'user'      => ['name' => 'Dil Tester', 'role' => 'admin'],
+    'activeNav' => 'transactions',
+], 'app');
+$transactionsOutput = ob_get_clean();
+
+assertTest("Transactions view renders with shared app layout", str_contains($transactionsOutput, 'id="transactionsApp"') && str_contains($transactionsOutput, 'class="app-shell"'));
+assertTest("Transactions navigation is active", str_contains($transactionsOutput, 'href="/transactions"') && str_contains($transactionsOutput, 'class="navigation-link is-active"'));
+assertTest("Transactions view loads its own assets", str_contains($transactionsOutput, 'assets/css/transactions.css') && str_contains($transactionsOutput, 'assets/js/transactions.js'));
+assertTest("Transactions form, history, and detail dialog render", str_contains($transactionsOutput, 'id="transactionForm"') && str_contains($transactionsOutput, 'id="transactionHistory"') && str_contains($transactionsOutput, 'id="transactionDetailPanel"'));
+assertTest("Transactions history includes pagination controls", str_contains($transactionsOutput, 'id="transactionPagination"') && str_contains($transactionsOutput, 'id="historyPreviousPage"') && str_contains($transactionsOutput, 'id="historyNextPage"'));
+
 // --- 7. TEST ERROR VIEWS ---
 echo "\n7. Testing Error Views:\n";
 
