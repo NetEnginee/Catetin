@@ -65,6 +65,12 @@
                     <fieldset class="transaction-form-field category-field">
                         <legend class="form-label">Kategori</legend>
                         <div class="category-chips" id="categoryOptions" role="group" aria-label="Kategori transaksi"></div>
+                        <button type="button" class="add-category-chip" id="toggleRemoveCategory" aria-pressed="false" aria-controls="categoryOptions">Kelola kategori</button>
+                        <div class="remove-category-confirmation" id="removeCategoryConfirmation" hidden>
+                            <p id="removeCategoryMessage" role="alert"></p>
+                            <button type="button" id="cancelRemoveCategory">Batal</button>
+                            <button type="button" id="confirmRemoveCategory">Hapus kategori</button>
+                        </div>
                         <div class="new-category-control" id="newCategoryControl" hidden>
                             <label class="visually-hidden" for="newCategoryName">Nama kategori baru</label>
                             <input id="newCategoryName" type="text" maxlength="40" placeholder="Nama kategori">

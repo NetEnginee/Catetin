@@ -356,6 +356,68 @@ body.has-transaction-overlay {
     background: #F3F2EC;
 }
 
+.category-chip.is-removable {
+    border-color: #E8A5A5;
+    background: #FFF6F6;
+    color: #8A1F1F;
+}
+
+.category-chip.is-removable:hover,
+.category-chip.is-removable:focus-visible {
+    border-color: #D03B3B;
+    background: #FDECEC;
+}
+
+.category-chip.is-removable::after {
+    content: "×";
+    margin-left: 6px;
+    font-size: 16px;
+    line-height: 1;
+}
+
+.remove-category-confirmation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.remove-category-confirmation[hidden] {
+    display: none;
+}
+
+.remove-category-confirmation p {
+    flex: 1 1 100%;
+    margin: 0;
+    color: #8A1F1F;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.remove-category-confirmation button {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--baseline);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.remove-category-confirmation #confirmRemoveCategory {
+    border-color: #D03B3B;
+    background: #D03B3B;
+    color: #ffffff;
+}
+
+.remove-category-confirmation button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .new-category-control {
     display: flex;
     gap: 8px;
