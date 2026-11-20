@@ -1,9 +1,11 @@
 <?php
+
 /**
  * Application Layout
  * @var string $title
  * @var string $content
  */
+
 use App\Core\Auth;
 use function App\Core\e;
 use function App\Core\csrf_field;
@@ -15,12 +17,12 @@ $navigation = [
     ['label' => 'Dashboard', 'href' => '/dashboard', 'icon' => 'dashboard'],
     ['label' => 'Transaksi', 'href' => '/transactions', 'icon' => 'transactions'],
     ['label' => 'Produk & Produksi', 'href' => '/products', 'icon' => 'products'],
-    ['label' => 'Titip Jual', 'href' => '/consignment', 'icon' => 'consignment'],
     ['label' => 'Laporan', 'href' => '/reports', 'icon' => 'reports'],
 ];
 ?>
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,8 +38,15 @@ $navigation = [
         <link rel="stylesheet" href="/assets/css/transactions.css">
     <?php endif; ?>
 </head>
+
 <body>
-    <noscript><style>#pageLoader { display: none !important; }</style></noscript>
+    <noscript>
+        <style>
+            #pageLoader {
+                display: none !important;
+            }
+        </style>
+    </noscript>
     <div class="page-loader" id="pageLoader" role="status" aria-label="Memuat halaman" aria-live="polite">
         <div class="page-loader-content">
             <span class="page-loader-spinner" aria-hidden="true"></span>
@@ -132,4 +141,5 @@ $navigation = [
         <script src="/assets/js/dashboard.js" defer></script>
     <?php endif; ?>
 </body>
+
 </html>
