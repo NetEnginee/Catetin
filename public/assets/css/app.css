@@ -56,6 +56,18 @@ button {
   outline-offset: 2px;
 }
 
+/* Remove the default blue tap highlight on touch devices */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+[role="tab"],
+[role="link"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
@@ -63,8 +75,9 @@ button {
 }
 
 .app-header {
-  position: relative;
-  z-index: 5;
+  position: sticky;
+  top: 0;
+  z-index: 20;
   background: var(--dark);
   color: var(--dark-text);
 }

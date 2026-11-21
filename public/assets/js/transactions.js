@@ -333,6 +333,7 @@
 
     function renderCategoryOptions() {
         const container = byId("categoryOptions");
+        const newCategoryOpen = !byId("newCategoryControl").hidden;
         container.innerHTML = state.categories[state.formType].map((category) => {
             if (state.manageCategories) {
                 return `<button class="category-chip is-removable" type="button" data-remove-category="${category.id}" aria-label="Hapus kategori ${escapeHtml(category.name)}">${escapeHtml(category.name)}</button>`;
@@ -341,7 +342,7 @@
             return `<button class="category-chip${selected ? " is-active" : ""}" type="button" data-form-category="${escapeHtml(category.name)}" aria-pressed="${selected}">${escapeHtml(category.name)}</button>`;
         }).join("") + (state.manageCategories
             ? ""
-            : '<button class="add-category-chip" id="toggleNewCategory" type="button" aria-expanded="false">+ Kategori</button>');
+            : `<button class="add-category-chip${newCategoryOpen ? " is-cancel" : ""}" id="toggleNewCategory" type="button" aria-expanded="${newCategoryOpen}">${newCategoryOpen ? "Batal" : "+ Kategori"}</button>`);
 
         const toggle = byId("toggleRemoveCategory");
         toggle.textContent = state.manageCategories ? "Selesai" : "Kelola kategori";
@@ -654,11 +655,19 @@
             byId("transactionAmount").value = "";
             byId("transactionDescription").value = "";
             state.selectedCategory = "";
+            byId("newCategoryControl").hidden = true;
+            byId("newCategoryName").value = "";
+            state.newCategoryName = "";
             renderPage();
             renderCategoryOptions();
             renderFormDate();
             showFormSuccess(`${state.formType === "income" ? "Pemasukan" : "Pengeluaran"} ${formatRupiah(created.amount)} tersimpan pada ${formatDate(created.date)}.`);
-            byId("transactionAmount").focus();
+            const historyTitle = byId("transactionHistoryTitle");
+            if (historyTitle) {
+                historyTitle.setAttribute("tabindex", "-1");
+                historyTitle.scrollIntoView({ block: "start", behavior: "smooth" });
+                historyTitle.focus();
+            }
         } catch (error) {
             showFormError(error.message);
         } finally {
@@ -809,12 +818,17 @@
         }
         if (event.target.closest("#toggleNewCategory")) {
             const control = byId("newCategoryControl");
-            control.hidden = !control.hidden;
-            byId("toggleNewCategory").setAttribute("aria-expanded", String(!control.hidden));
-            if (!control.hidden) byId("newCategoryName").focus();
+            const opening = control.hidden;
+            control.hidden = !opening;
+            const toggle = byId("toggleNewCategory");
+            toggle.setAttribute("aria-expanded", String(opening));
+            toggle.textContent = opening ? "Batal" : "+ Kategori";
+            toggle.classList.toggle("is-cancel", opening);
+            if (opening) byId("newCategoryName").focus();
             else {
                 state.newCategoryName = "";
                 byId("newCategoryName").value = "";
+                byId("categoryFeedback").hidden = true;
             }
         }
     });

@@ -351,6 +351,12 @@ body.has-transaction-overlay {
     color: var(--link);
 }
 
+.add-category-chip.is-cancel {
+    border-color: var(--error-text, #8a1f1f);
+    color: var(--error-text, #8a1f1f);
+    background: var(--error-bg, #fdecec);
+}
+
 .category-chip:hover:not(.is-active),
 .add-category-chip:hover {
     background: #F3F2EC;
